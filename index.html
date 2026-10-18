@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Household Shepherd</title>
+<meta name="theme-color" content="#3F6B57">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F0; --surface:#FFFFFF; --sunk:#E3E9E6; --ink:#1C2B33; --muted:#5A6A70;
+  --line:#CBD5D1; --sage:#3F6B57; --sage-soft:#DCE8E1; --gold:#9A7322; --gold-soft:#F3E9D2;
+  --rust:#A2432F; --rust-soft:#F5DFD8; --focus:#2F6FB0;
+  --serif:"Literata", Georgia, "Times New Roman", serif;
+  --sans:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141C1F; --surface:#1D272B; --sunk:#172024; --ink:#E4ECE8; --muted:#9AABA6;
+    --line:#33434A; --sage:#7FB79B; --sage-soft:#22382E; --gold:#D8B262; --gold-soft:#3A3120;
+    --rust:#E58C76; --rust-soft:#432A24; --focus:#7DB2EA; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141C1F; --surface:#1D272B; --sunk:#172024; --ink:#E4ECE8; --muted:#9AABA6;
+  --line:#33434A; --sage:#7FB79B; --sage-soft:#22382E; --gold:#D8B262; --gold-soft:#3A3120;
+  --rust:#E58C76; --rust-soft:#432A24; --focus:#7DB2EA; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:20px 18px 110px}
+h1,h2,h3{font-family:var(--serif);font-weight:650;margin:0;line-height:1.2}
+h1{font-size:1.75rem}
+h2{font-size:1.3rem}
+h3{font-size:1.05rem}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:18px}
+header.top .sub{color:var(--muted);font-size:.92rem;margin-top:4px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn.primary{background:var(--sage);border-color:var(--sage);color:var(--surface)}
+.btn.warn{background:var(--rust);border-color:var(--rust);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--sage);padding:6px 8px}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:10px}
+input[type=text],input[type=search],input[type=date],input[type=time],input[type=tel],input[type=number],select,textarea{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:84px;resize:vertical}
+label.f{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 4px}
+.search{margin-bottom:14px}
+
+/* the flock list: the one memorable element is the care ring */
+.flock{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.flock li{border-bottom:1px solid var(--line)}
+.flock button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;width:100%;padding:14px 4px;cursor:pointer}
+.flock button:focus-visible{outline:2px solid var(--focus)}
+.ring{width:52px;height:52px;position:relative}
+.ring svg{width:52px;height:52px;transform:rotate(-90deg)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);font-weight:650;font-size:1rem}
+.who{min-width:0}
+.who strong{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .meta{font-size:.85rem;color:var(--muted)}
+.tag{font-size:.78rem;padding:3px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.tag.ok{background:var(--sage-soft);color:var(--sage)}
+.tag.due{background:var(--gold-soft);color:var(--gold)}
+.tag.late{background:var(--rust-soft);color:var(--rust)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin:10px 0 0}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+.panel h3{margin-bottom:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stats div{background:var(--sunk);border-radius:10px;padding:10px}
+.stats b{display:block;font-family:var(--serif);font-size:1.25rem}
+.stats span{font-size:.8rem;color:var(--muted)}
+.timeline{list-style:none;margin:8px 0 0;padding:0}
+.timeline li{padding:10px 0;border-top:1px solid var(--line)}
+.timeline li:first-child{border-top:0}
+.timeline .when{font-size:.8rem;color:var(--muted)}
+.timeline p{margin:2px 0 0;white-space:pre-wrap}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+.check input{margin-top:4px;width:18px;height:18px;accent-color:var(--sage)}
+.empty{padding:28px 6px;text-align:left;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font-family:var(--serif);font-size:1.1rem;margin-bottom:4px}
+.notice{background:var(--gold-soft);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:.88rem;margin-top:12px}
+.back{margin:-6px 0 10px -8px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav.tabs .in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs button{all:unset;cursor:pointer;text-align:center;padding:10px 2px 12px;font-size:.78rem;color:var(--muted);position:relative}
+nav.tabs button svg{display:block;margin:0 auto 3px;width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--sage);font-weight:600}
+nav.tabs button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.badge{position:absolute;top:6px;left:calc(50% + 6px);background:var(--rust);color:#fff;border-radius:999px;font-size:.68rem;padding:0 6px;line-height:16px}
+
+dialog{border:0;border-radius:16px;padding:0;background:var(--surface);color:var(--ink);width:min(560px,94vw);max-height:90vh}
+dialog::backdrop{background:rgba(10,20,24,.5)}
+dialog form{padding:20px}
+dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:20;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+.flag{border-left:4px solid var(--gold);padding:12px 12px 12px 14px;background:var(--surface);border-radius:0 12px 12px 0;margin-top:10px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.flag.urgent{border-left-color:var(--rust)}
+.flag.resolved{border-left-color:var(--sage);opacity:.8}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;padding:8px 12px;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--sage);color:var(--surface)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.cel{list-style:none;margin:0;padding:0}
+.cel li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.cel li:first-child{border-top:0}
+.cel .when{font-size:.82rem;color:var(--gold);font-weight:600}
+.hh{padding:12px 0;border-top:1px solid var(--line)}
+.hh:first-of-type{border-top:0}
+.hh .bar{height:6px;border-radius:3px;background:var(--sunk);margin-top:8px;overflow:hidden}
+.hh .bar i{display:block;height:100%;background:var(--sage)}
+.stats.four{grid-template-columns:repeat(2,1fr)}
+@media (min-width:560px){.stats.four{grid-template-columns:repeat(4,1fr)}}
+select.lang{width:auto;padding:6px 8px;font-size:.88rem}
+.auth{max-width:420px;margin:8vh auto 0}
+.auth h1{font-size:2rem;margin-bottom:6px}
+.auth .panel{margin-top:20px}
+.err{color:var(--rust);font-size:.9rem;margin-top:10px}
+.leader{display:grid;grid-template-columns:1fr;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.leader:first-of-type{border-top:0}
+@media (min-width:560px){.leader{grid-template-columns:1.4fr 1fr 1fr auto;align-items:center}}
+</style>
+</head>
+<body>
+<main class="wrap" id="app" aria-live="polite"><p class="muted">…</p></main>
+<nav class="tabs" aria-label="Sections"><div class="in" id="tabs"></div></nav>
+<div class="toast" id="toast" role="status"></div>
+<dialog id="dlg"></dialog>
+
+<script>
+/* =========================================================
+   SETUP: paste your Supabase project values here.
+   Supabase > Project Settings > API (or "Connect" > App frameworks)
+   The anon/publishable key is safe to publish: the database's
+   row-level security rules protect the data.
+   ========================================================= */
+const SUPABASE_URL = "https://gojrjbpduqmpfppnrdha.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanJqYnBkdXFtcGZwcG5yZGhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNzA3NDYsImV4cCI6MjEwNzg0Njc0Nn0.J0Vr3LO7zru6vfltOAwrhjalGH8_TKzD_T49-0XQGJ0";
+
+(() => {
+"use strict";
+const LANGS = [["en","English"],["tl","Tagalog"],["ceb","Cebuano"]];
+const LOCALE = {en:"en-PH", tl:"fil-PH", ceb:"en-PH"};
+const L = {
+  opening:["Opening your folder…","Binubuksan ang iyong folder…","Gibuksan ang imong folder…"],
+  tabFlock:["Flock","Kawan","Panon"], tabMeet:["Meetings","Pulong","Tigom"], tabTopics:["Topics","Paksa","Hilisgutan"],
+  tabFlags:["Care flags","Referral","Referral"], tabChapter:["Chapter","Chapter","Chapter"], tabExport:["Export","I-export","I-export"],
+  myFlock:["My flock","Aking kawan","Akong panon"], yourHH:["Your household","Iyong household","Imong household"],
+  nMembers:[n=>`${n} ${n===1?"member":"members"}`, n=>`${n} miyembro`, n=>`${n} ka miyembro`],
+  nFollow:[n=>`${n} ${n===1?"needs":"need"} a follow-up`, n=>`${n} ang kailangang kumustahin`, n=>`${n} ang kinahanglang kumustahon`],
+  emptyT:["Your shepherd’s folder is empty.","Wala pang laman ang iyong shepherd’s folder.","Wala pay sulod ang imong shepherd’s folder."],
+  emptyB:["Add the couples and members you care for. Notes you write here are visible only to you.","Idagdag ang mga mag-asawa at miyembrong iyong inaalagaan. Ikaw lang ang makakakita ng mga tala mo rito.","Idugang ang mga magtiayon ug miyembro nga imong giatiman. Ikaw ra ang makakita sa imong mga nota dinhi."],
+  addMember:["Add a member","Magdagdag ng miyembro","Pagdugang og miyembro"], nameHH:["Name your household","Pangalanan ang household","Nganli ang household"],
+  search:["Search by name or household","Maghanap ayon sa pangalan o household","Pangitaa pinaagi sa ngalan o household"],
+  clpGrad:["CLP graduate","Nakatapos ng CLP","Nakahuman sa CLP"], clpNot:["CLP not yet taken","Hindi pa nakaka-CLP","Wala pa maka-CLP"],
+  nPrayer:[n=>`${n} prayer request${n>1?"s":""}`, n=>`${n} prayer request`, n=>`${n} ka prayer request`],
+  noMatch:[q=>`No one matches “${q}”.`, q=>`Walang tumugma sa “${q}”.`, q=>`Walay mitugma sa “${q}”.`],
+  lg1:["Contacted within 2 weeks","Nakausap sa loob ng 2 linggo","Nakaistorya sulod sa 2 ka semana"],
+  lg2:["2–4 weeks","2–4 linggo","2–4 ka semana"], lg3:["Over a month","Higit isang buwan","Sobra usa ka bulan"],
+  today:["Today","Ngayon","Karon"], tomorrow:["Tomorrow","Bukas","Ugma"],
+  noContact:["No contact yet","Wala pang kumustahan","Wala pay kumustahay"],
+  dAgo:[d=>`${d}d ago`, d=>`${d} araw na`, d=>`${d} ka adlaw na`],
+  inDays:[d=>`In ${d} days`, d=>`${d} araw pa`, d=>`${d} ka adlaw pa`],
+  settings:["Settings","Settings","Settings"], add:["Add","Dagdag","Dugang"], edit:["Edit","I-edit","Usba"],
+  localNote:["You’re using this on this device only. Open the published link while signed in to keep your folder synced and to send care flags to your Unit Servant.","Sa device na ito mo lang ginagamit ang app. Buksan ang published link habang naka-sign in para ma-sync ang folder at makapagpadala ng referral sa iyong Unit Servant.","Niining device ra nimo gigamit ang app. Ablihi ang published link samtang naka-sign in aron ma-sync ang folder ug makapadala og referral sa imong Unit Servant."],
+  back:["‹ My flock","‹ Aking kawan","‹ Akong panon"], noDetails:["No contact details yet","Wala pang contact details","Wala pay contact details"],
+  sinceContact:["Since last contact","Mula huling kumustahan","Sukad sa katapusang kumustahay"],
+  attended:[(a,b)=>`Meetings attended (${a}/${b})`,(a,b)=>`Dinaluhang pulong (${a}/${b})`,(a,b)=>`Gitambongang tigom (${a}/${b})`],
+  notYet:["Not yet","Hindi pa","Wala pa"], yes:["Yes","Oo","Oo"],
+  logNote:["Log a visit or call","Itala ang bisita o tawag","Isulat ang bisita o tawag"],
+  flag:["Flag for pastoral care","I-refer sa Unit Servant","I-refer sa Unit Servant"],
+  pNotes:["Pastoral notes","Mga pastoral note","Mga pastoral nga nota"], privateYou:["Private to you","Ikaw lang ang nakakakita","Ikaw ra ang makakita"],
+  del:["Delete","Burahin","Papasa"], remove:["Remove","Alisin","Tangtangon"],
+  noNotes:["No notes yet. Log your first visit, call, or conversation to start the care ring.","Wala pang tala. Itala ang unang bisita, tawag, o kuwentuhan para magsimula ang care ring.","Wala pay nota. Isulat ang unang bisita, tawag, o istorya aron magsugod ang care ring."],
+  prayers:["Prayer requests","Mga prayer request","Mga prayer request"], answered:["answered","sinagot na","natubag na"], noneYet:["None yet.","Wala pa.","Wala pa."],
+  formation:["Formation journey","Mga formation","Mga formation"],
+  formationSub:["Retreats, trainings and programs completed.","Mga natapos na retreat, training at programa.","Mga nahuman nga retreat, training ug programa."],
+  nothingLogged:["Nothing logged yet.","Wala pang naitala.","Wala pay natala."],
+  context:["Family & personal context","Pamilya at personal na sitwasyon","Pamilya ug personal nga kahimtang"],
+  removeFrom:[n=>`Remove ${n} from my folder`, n=>`Alisin si ${n} sa aking folder`, n=>`Tangtanga si ${n} sa akong folder`],
+  confirmRemove:[n=>`Remove ${n} and all their notes? This can’t be undone.`, n=>`Alisin si ${n} at lahat ng tala? Hindi na ito maibabalik.`, n=>`Tangtangon si ${n} ug ang tanang nota? Dili na kini mabawi.`],
+  specialDates:["Special dates","Mahahalagang petsa","Importanteng petsa"],
+  upcomingCel:["Upcoming celebrations","Mga paparating na okasyon","Umaabot nga mga okasyon"],
+  bday:["Birthday","Kaarawan","Adlawng natawhan"], spouseBday:["Spouse’s birthday","Kaarawan ng asawa","Adlawng natawhan sa kapikas"],
+  anniv:["Wedding anniversary","Anibersaryo ng kasal","Anibersaryo sa kasal"],
+  yearsMarried:[y=>`${y} years`, y=>`${y} taon`, y=>`${y} ka tuig`],
+  copyGreet:["Copy greeting","Kopyahin ang bati","Kopyaha ang pangumusta"], greetCopied:["Greeting copied","Nakopya ang bati","Nakopya ang pangumusta"],
+  greetBday:[n=>`Happy birthday, ${n}! Praying that God blesses you with joy, good health and a deeper love for Him this year. From your CFC household.`,
+             n=>`Maligayang kaarawan, ${n}! Ipinapanalangin naming pagpalain ka ng Diyos ng kagalakan, magandang kalusugan at mas malalim na pagmamahal sa Kanya ngayong taon. Mula sa iyong CFC household.`,
+             n=>`Malipayong adlawng natawhan, ${n}! Nag-ampo kami nga panalanginan ka sa Ginoo og kalipay, maayong panglawas ug mas lawom nga gugma Kaniya karong tuiga. Gikan sa imong CFC household.`],
+  greetAnniv:[(n,y)=>`Happy wedding anniversary, ${n}!${y?` ${y} years of marriage!`:""} Thank you for your witness of a Christ-centered marriage. God bless your family!`,
+              (n,y)=>`Maligayang anibersaryo ng kasal, ${n}!${y?` ${y} taon nang magkasama!`:""} Salamat sa inyong patotoo ng pagsasamang nakasentro kay Kristo. Pagpalain nawa ng Diyos ang inyong pamilya!`,
+              (n,y)=>`Malipayong anibersaryo sa kasal, ${n}!${y?` ${y} ka tuig na nga magkauban!`:""} Salamat sa inyong pagpamatuod sa kaminyoon nga nakasentro kang Kristo. Panalanginan unta sa Ginoo ang inyong pamilya!`],
+  hhMeetings:["Household meetings","Mga household meeting","Mga household meeting"],
+  nextHost:[n=>`Next suggested host: ${n}`, n=>`Mungkahing susunod na host: ${n}`, n=>`Gisugyot nga sunod nga host: ${n}`],
+  rotate:["Rotate venues house to house","Magpalipat-lipat ng bahay","Magbalhin-balhin og balay"],
+  schedule:["Schedule","Mag-iskedyul","Pag-iskedyul"],
+  addFirstT:["Add members first.","Magdagdag muna ng miyembro.","Pagdugang una og miyembro."],
+  addFirstB:["Hosts and attendance come from your flock.","Sa iyong kawan kinukuha ang mga host at attendance.","Gikan sa imong panon ang mga host ug attendance."],
+  comingUp:["Coming up","Paparating","Umaabot"], pastMeet:["Past meetings","Mga nakaraang pulong","Mga milabay nga tigom"],
+  atHome:[n=>`At ${n}’s home`, n=>`Sa bahay ni ${n}`, n=>`Sa balay ni ${n}`],
+  venueTBD:["Venue to be set","Wala pang lugar","Wala pay lugar"], open:["Open","Buksan","Ablihi"],
+  ofAttended:[(a,b)=>`${a} of ${b} attended`,(a,b)=>`${a} sa ${b} ang dumalo`,(a,b)=>`${a} sa ${b} ang mitambong`],
+  noMeetT:["No meetings scheduled.","Wala pang nakaiskedyul na pulong.","Wala pay naka-iskedyul nga tigom."],
+  noMeetB:["Plan the next gathering and the app will suggest whose home is next.","Planuhin ang susunod na pagtitipon at magmumungkahi ang app kung kaninong bahay ang susunod.","Planoha ang sunod nga panagtapok ug mosugyot ang app kung kang kinsang balay ang sunod."],
+  reminder:[(d,tm,pl,ad,tp)=>`Hi, household! Reminder: our household meeting is on ${d}${tm?` at ${tm}`:""}, ${pl}.${ad?` (${ad})`:""}${tp?` Topic: ${tp}.`:""} See you there. God bless!`,
+            (d,tm,pl,ad,tp)=>`Hi, household! Paalala: ang ating household meeting ay sa ${d}${tm?` ng ${tm}`:""}, ${pl}.${ad?` (${ad})`:""}${tp?` Paksa: ${tp}.`:""} Kita-kits! God bless!`,
+            (d,tm,pl,ad,tp)=>`Hi, household! Pahinumdom: ang atong household meeting kay sa ${d}${tm?` sa ${tm}`:""}, ${pl}.${ad?` (${ad})`:""}${tp?` Hilisgutan: ${tp}.`:""} Kita-kits! God bless!`],
+  placeHome:[n=>`at ${n}’s home`, n=>`sa bahay ni ${n}`, n=>`sa balay ni ${n}`],
+  placeVenue:[v=>`at ${v}`, v=>`sa ${v}`, v=>`sa ${v}`],
+  placeTBD:["venue to follow","ipapaalam pa ang lugar","ipahibalo pa ang lugar"],
+  topicLib:["Topic library","Mga paksa","Mga hilisgutan"],
+  topicSub:["Track the topics from your household topic book","Subaybayan ang mga paksa mula sa household topic book","Bantayi ang mga hilisgutan gikan sa household topic book"],
+  addTopic:["Add topic","Magdagdag ng paksa","Pagdugang og hilisgutan"],
+  covered:[d=>`Covered ${d}`, d=>`Natalakay ${d}`, d=>`Nahisgotan ${d}`],
+  notCovered:["Not yet covered","Hindi pa natatalakay","Wala pa mahisgoti"],
+  noTopicsT:["No topics yet.","Wala pang paksa.","Wala pay hilisgutan."],
+  noTopicsB:["Add the topics from your current CFC household topic book as you plan your meetings, with your own notes for leading each one.","Idagdag ang mga paksa mula sa kasalukuyang CFC household topic book habang pinaplano ang mga pulong, kasama ang sarili mong tala sa pangunguna sa bawat isa.","Idugang ang mga hilisgutan gikan sa karon nga CFC household topic book samtang nagplano sa mga tigom, uban ang imong kaugalingong nota sa pagpangulo sa matag usa."],
+  flagsTitle:["Care flags","Mga referral","Mga referral"],
+  flagsDiscreet:["Discreet referral to your Unit Servant","Tahimik na pag-refer sa iyong Unit Servant","Hilom nga pag-refer sa imong Unit Servant"],
+  needLinkT:["Care flags need the shared link.","Kailangan ang shared link para sa referral.","Kinahanglan ang shared link para sa referral."],
+  needLinkB:["Open this app from its published link while signed in. Your Unit Servant opens the same link to receive your flags.","Buksan ang app mula sa published link habang naka-sign in. Ang parehong link din ang bubuksan ng iyong Unit Servant para matanggap ang referral.","Ablihi ang app gikan sa published link samtang naka-sign in. Ang samang link usab ang ablihan sa imong Unit Servant aron madawat ang referral."],
+  inboxSub:["Referrals from household servants in your unit","Mga referral mula sa mga household servant sa iyong unit","Mga referral gikan sa mga household servant sa imong unit"],
+  sentSub:["Concerns you’ve referred to your Unit Servant","Mga alalahaning ini-refer mo sa iyong Unit Servant","Mga kabalaka nga imong gi-refer sa imong Unit Servant"],
+  st_open:["Waiting for Unit Servant","Hinihintay ang Unit Servant","Naghulat sa Unit Servant"],
+  st_ack:["Acknowledged","Natanggap na","Nadawat na"], st_resolved:["Resolved","Naayos na","Nahusay na"],
+  urgent:["Urgent","Agaran","Dinalian"], week:["Within the week","Sa loob ng linggo","Sulod sa semana"],
+  from:[n=>`from ${n}`, n=>`mula kay ${n}`, n=>`gikan kang ${n}`],
+  aServant:["a household servant","isang household servant","usa ka household servant"],
+  acknowledge:["Acknowledge","Tanggapin","Dawata"], markResolved:["Mark resolved","Markahang naayos","Markahi nga nahusay"],
+  unitInbox:[n=>`Unit inbox (${n})`, n=>`Inbox ng unit (${n})`, n=>`Inbox sa unit (${n})`],
+  sentByMe:["Sent by me","Ipinadala ko","Akong gipadala"],
+  noInboxT:["No flags from your unit.","Walang referral mula sa iyong unit.","Walay referral gikan sa imong unit."],
+  noInboxB:["When a household servant flags a concern, it appears here.","Lalabas dito kapag may ini-refer ang isang household servant.","Mogawas dinhi kung adunay i-refer ang usa ka household servant."],
+  noSentT:["You haven’t flagged anyone.","Wala ka pang ini-refer.","Wala pa kay gi-refer."],
+  noSentB:[f=>`Open a member and choose “${f}” when an issue needs your Unit Servant.`, f=>`Buksan ang profile ng miyembro at piliin ang “${f}” kapag kailangan na ng Unit Servant.`, f=>`Ablihi ang profile sa miyembro ug pilia ang “${f}” kung kinahanglan na sa Unit Servant.`],
+  flagsFoot:["Flags share only the member’s name, a category and your short note. Keep the details for a personal conversation.","Pangalan, kategorya at maikling tala mo lang ang ipinapadala. Ilaan ang detalye sa personal na usapan.","Ngalan, kategorya ug imong mubo nga nota ra ang ipadala. Itago ang detalye para sa personal nga istoryahanay."],
+  flagDesc:[n=>`Your Unit Servant will see ${n}’s name, the category and your short note — nothing from your private folder.`, n=>`Makikita ng iyong Unit Servant ang pangalan ni ${n}, ang kategorya at ang maikling tala mo — walang galing sa pribado mong folder.`, n=>`Makita sa imong Unit Servant ang ngalan ni ${n}, ang kategorya ug ang imong mubo nga nota — walay gikan sa imong pribadong folder.`],
+  concern:["Concern","Alalahanin","Kabalaka"], howSoon:["How soon","Gaano kaagad","Unsa ka dali"],
+  urgentCall:["Urgent — please call me","Agaran — pakitawagan ako","Dinalian — palihug tawgi ko"],
+  shortNote:["Short note (optional)","Maikling tala (opsyonal)","Mubo nga nota (opsyonal)"],
+  shortNotePh:["Enough to start a conversation. Keep sensitive details for when you talk.","Sapat lang para makapagsimula ng usapan. Ilaan ang sensitibong detalye kapag nag-usap na kayo.","Igo ra aron makasugod og istorya. Itago ang sensitibong detalye kung mag-istoryahanay na mo."],
+  flagSent:["Flag sent to your Unit Servant","Naipadala ang referral sa iyong Unit Servant","Napadala ang referral sa imong Unit Servant"],
+  ackTitle:["Acknowledge flag","Tanggapin ang referral","Dawata ang referral"],
+  respMsg:["Message to the household servant (optional)","Mensahe sa household servant (opsyonal)","Mensahe sa household servant (opsyonal)"],
+  respPh:["e.g. I’ll visit them this Saturday.","hal. Bibisitahin ko sila ngayong Sabado.","pananglitan: Bisitahon nako sila karong Sabado."],
+  cat_Marriage:["Marriage","Pag-aasawa","Kaminyoon"], cat_Family:["Family","Pamilya","Pamilya"], cat_Finances:["Finances","Pananalapi","Panalapi"],
+  cat_Health:["Health","Kalusugan","Panglawas"], "cat_Grief or loss":["Grief or loss","Pagdadalamhati","Pagbangotan"],
+  "cat_Faith and commitment":["Faith and commitment","Pananampalataya at commitment","Pagtuo ug commitment"],
+  "cat_Conflict in the household":["Conflict in the household","Hidwaan sa household","Panagbangi sa household"], cat_Other:["Other","Iba pa","Uban pa"],
+  exportTitle:["Export & reports","Export at ulat","Export ug report"], exportSub:["For OGD encoding and backups","Para sa OGD encoding at backup","Para sa OGD encoding ug backup"],
+  repT:["Formation & attendance report","Ulat ng formation at attendance","Report sa formation ug attendance"],
+  repB:["A spreadsheet (CSV) with each member’s CLP status, formation milestones and meeting attendance — the figures you encode in One Global Data. Pastoral notes and prayer requests are never included.","Isang spreadsheet (CSV) ng CLP status, formation at attendance ng bawat miyembro — ang mga bilang na ine-encode sa One Global Data. Hindi kailanman kasama ang pastoral notes at prayer requests.","Usa ka spreadsheet (CSV) sa CLP status, formation ug attendance sa matag miyembro — ang mga numero nga i-encode sa One Global Data. Dili gyud apil ang pastoral notes ug prayer requests."],
+  dlRep:["Download report (CSV)","I-download ang ulat (CSV)","I-download ang report (CSV)"],
+  backupT:["Full backup","Buong backup","Tibuok backup"],
+  backupB:["Everything in your folder, including private notes, as a JSON file. Use it when handing over to the next Household Servant — store it safely.","Lahat ng nasa folder mo, kasama ang pribadong tala, bilang JSON file. Gamitin ito sa pagpapasa sa susunod na Household Servant — itago nang maayos.","Tanan sa imong folder, apil ang pribadong nota, isip JSON file. Gamita kini sa pagpasa ngadto sa sunod nga Household Servant — tipigi og maayo."],
+  dlBackup:["Download backup","I-download ang backup","I-download ang backup"],
+  sharingT:["Sharing with your unit and chapter","Pagbabahagi sa unit at chapter","Pagpaambit sa unit ug chapter"],
+  sharingB:["Your Unit and Chapter Servants see counts only — members, CLP graduates, follow-ups and attendance. Names, notes and prayer requests stay private.","Bilang lang ang nakikita ng iyong Unit at Chapter Servant — miyembro, nakatapos ng CLP, kumustahan at attendance. Pribado pa rin ang pangalan, tala at prayer request.","Numero ra ang makita sa imong Unit ug Chapter Servant — miyembro, nakahuman sa CLP, kumustahay ug attendance. Pribado gihapon ang ngalan, nota ug prayer request."],
+  household:["Household","Household","Household"], notNamed:["Not named yet","Wala pang pangalan","Wala pay ngalan"],
+  editSettings:["Edit settings","Baguhin ang settings","Usba ang settings"],
+  cancel:["Cancel","Kanselahin","Kanselahon"], save:["Save","I-save","I-save"],
+  editMember:["Edit member","I-edit ang miyembro","Usba ang miyembro"],
+  fName:["Name","Pangalan","Ngalan"], fSpouse:["Spouse (if a couple)","Asawa (kung mag-asawa)","Kapikas (kung magtiayon)"],
+  fHH:["Household or chapter","Household o chapter","Household o chapter"], fPhone:["Phone","Telepono","Telepono"],
+  fAddr:["Home address (for hosting)","Address ng bahay (para sa hosting)","Address sa balay (para sa hosting)"],
+  fClp:["Has completed the Christian Life Program","Nakatapos na ng Christian Life Program","Nakahuman na sa Christian Life Program"],
+  fClpYear:["CLP year","Taon ng CLP","Tuig sa CLP"],
+  fContext:["Family & personal context (private)","Pamilya at personal na sitwasyon (pribado)","Pamilya ug personal nga kahimtang (pribado)"],
+  fContextPh:["Children, work, health, things to remember","Mga anak, trabaho, kalusugan, mga dapat tandaan","Mga anak, trabaho, panglawas, mga angay hinumdoman"],
+  mAdded:["Member added","Naidagdag ang miyembro","Nadugang ang miyembro"], mUpdated:["Member updated","Na-update ang miyembro","Na-update ang miyembro"],
+  mRemoved:["Member removed","Naalis ang miyembro","Natangtang ang miyembro"],
+  hhSettings:["Household settings","Settings ng household","Settings sa household"],
+  hhName:["Household name","Pangalan ng household","Ngalan sa household"], unitName:["Unit name","Pangalan ng unit","Ngalan sa unit"],
+  role:["Your role","Iyong tungkulin","Imong papel"], language:["Language","Wika","Pinulongan"],
+  accessHint:["To receive care flags and see the chapter view, Unit and Chapter Servants need Editor access. Household Servants need Contributor access.","Para makatanggap ng referral at makita ang chapter view, kailangan ng Unit at Chapter Servant ang Editor access. Contributor access naman para sa Household Servant.","Aron makadawat og referral ug makita ang chapter view, kinahanglan sa Unit ug Chapter Servant ang Editor access. Contributor access usab para sa Household Servant."],
+  setSaved:["Settings saved","Na-save ang settings","Na-save ang settings"],
+  hhMeeting:["Household meeting","Household meeting","Household meeting"], schedMeeting:["Schedule a meeting","Mag-iskedyul ng pulong","Pag-iskedyul og tigom"],
+  date:["Date","Petsa","Petsa"], time:["Time","Oras","Oras"], hostHome:["Host home","Bahay ng host","Balay sa host"],
+  otherVenue:["Another venue","Ibang lugar","Laing lugar"], suggested:["(suggested)","(mungkahi)","(gisugyot)"],
+  venueField:["Venue (if not a member’s home)","Lugar (kung hindi bahay ng miyembro)","Lugar (kung dili balay sa miyembro)"],
+  topic:["Topic","Paksa","Hilisgutan"], attendance:["Attendance","Attendance","Attendance"],
+  fillAfter:[" (fill in after the meeting)"," (punan pagkatapos ng pulong)"," (sulati human sa tigom)"],
+  meetNotes:["Meeting notes","Tala ng pulong","Nota sa tigom"],
+  copyReminder:["Copy reminder message","Kopyahin ang paalala","Kopyaha ang pahinumdom"],
+  delMeeting:["Delete meeting","Burahin ang pulong","Papasa ang tigom"],
+  confirmDelMeet:["Delete this meeting and its attendance?","Burahin ang pulong na ito at ang attendance?","Papason ang kini nga tigom ug ang attendance?"],
+  meetScheduled:["Meeting scheduled","Naiskedyul ang pulong","Na-iskedyul ang tigom"], meetSaved:["Meeting saved","Na-save ang pulong","Na-save ang tigom"],
+  meetDeleted:["Meeting deleted","Nabura ang pulong","Napapas ang tigom"],
+  remCopied:["Reminder copied — paste it in your group chat","Nakopya ang paalala — i-paste sa group chat","Nakopya ang pahinumdom — i-paste sa group chat"],
+  copyThis:["Copy this message","Kopyahin ang mensaheng ito","Kopyaha kini nga mensahe"],
+  editTopic:["Edit topic","I-edit ang paksa","Usba ang hilisgutan"], title:["Title","Pamagat","Titulo"], number:["Number","Bilang","Numero"],
+  source:["Source","Pinagmulan","Gigikanan"], leadNotes:["Your notes for leading it","Tala mo sa pangunguna nito","Imong nota sa pagpangulo niini"],
+  delTopic:["Delete topic","Burahin ang paksa","Papasa ang hilisgutan"],
+  tAdded:["Topic added","Naidagdag ang paksa","Nadugang ang hilisgutan"], tSaved:["Topic saved","Na-save ang paksa","Na-save ang hilisgutan"], tDeleted:["Topic deleted","Nabura ang paksa","Napapas ang hilisgutan"],
+  kind:["Kind","Uri","Klase"],
+  "nt_Home visit":["Home visit","Bisita sa bahay","Bisita sa balay"], "nt_Phone call":["Phone call","Tawag","Tawag"], nt_Message:["Message","Mensahe","Mensahe"],
+  "nt_Talk after meeting":["Talk after meeting","Kuwentuhan pagkatapos ng pulong","Istorya human sa tigom"], "nt_Prayer time":["Prayer time","Sabayang panalangin","Dungan nga pag-ampo"], nt_Other:["Other","Iba pa","Uban pa"],
+  talked:["What you talked about","Ano ang napag-usapan","Unsa ang inyong gihisgotan"],
+  talkedPh:["How they’re doing, family, work, prayer life, next steps","Kumusta sila, pamilya, trabaho, buhay-panalangin, susunod na hakbang","Kumusta sila, pamilya, trabaho, kinabuhi sa pag-ampo, sunod nga lakang"],
+  noteSaved:["Note saved","Na-save ang tala","Na-save ang nota"], confirmDelNote:["Delete this note?","Burahin ang talang ito?","Papason kini nga nota?"],
+  prayerReq:["Prayer request","Prayer request","Prayer request"], request:["Request","Kahilingan","Hangyo"],
+  prayerAdded:["Prayer request added","Naidagdag ang prayer request","Nadugang ang prayer request"],
+  milestone:["Formation milestone","Formation milestone","Formation milestone"],
+  program:["Program, retreat or training","Programa, retreat o training","Programa, retreat o training"],
+  dateDone:["Date completed","Petsa ng pagtatapos","Petsa nga nahuman"], msAdded:["Milestone added","Naidagdag ang milestone","Nadugang ang milestone"],
+  errSave:["Couldn’t save. Check your connection and try again.","Hindi na-save. Tingnan ang koneksyon at subukang muli.","Wala na-save. Susiha ang koneksyon ug sulayi pag-usab."],
+  errFull:["Storage is full. Remove old records to save more.","Puno na ang storage. Mag-alis ng lumang record para makapag-save pa.","Puno na ang storage. Pagtangtang og daan nga record aron maka-save pa."],
+  errDel:["Couldn’t delete. Try again.","Hindi nabura. Subukang muli.","Wala napapas. Sulayi pag-usab."],
+  errConn:["Lost connection to your folder. Reload to reconnect.","Naputol ang koneksyon sa folder. I-reload para makakonekta muli.","Naputol ang koneksyon sa folder. I-reload aron makakonektar pag-usab."],
+  errContrib:["You need Contributor access to send flags. Ask the app owner.","Kailangan mo ng Contributor access para makapag-refer. Magtanong sa may-ari ng app.","Kinahanglan nimo ang Contributor access aron maka-refer. Pangutan-a ang tag-iya sa app."],
+  errFlag:["Couldn’t send the flag. Try again.","Hindi naipadala ang referral. Subukang muli.","Wala napadala ang referral. Sulayi pag-usab."],
+  errUpd:["Couldn’t update the flag. Try again.","Hindi na-update ang referral. Subukang muli.","Wala na-update ang referral. Sulayi pag-usab."],
+  errDl:["Downloads aren’t available here.","Hindi available ang download dito.","Dili available ang download dinhi."],
+  needLinkToast:["Care flags need the published link while signed in","Kailangan ang published link habang naka-sign in","Kinahanglan ang published link samtang naka-sign in"],
+  chapterTitle:["Chapter overview","Kabuuan ng chapter","Kinatibuk-an sa chapter"],
+  chapterSub:[(h,m)=>`${h} household${h===1?"":"s"} · ${m} members`, (h,m)=>`${h} household · ${m} miyembro`, (h,m)=>`${h} ka household · ${m} ka miyembro`],
+  cFollow:["Need a follow-up","Kailangang kumustahin","Kinahanglang kumustahon"],
+  cAtt:["Attendance, last 3 meetings","Attendance, huling 3 pulong","Attendance, katapusang 3 ka tigom"],
+  cClp:["CLP graduates","Nakatapos ng CLP","Nakahuman sa CLP"], cFlags:["Open referrals","Bukas na referral","Abli nga referral"],
+  lastMeet:[d=>`Last meeting ${d}`, d=>`Huling pulong ${d}`, d=>`Katapusang tigom ${d}`],
+  nextMeet:[d=>`Next ${d}`, d=>`Susunod ${d}`, d=>`Sunod ${d}`],
+  noMeet30:["No meeting in over a month","Walang pulong nang higit isang buwan","Walay tigom sobra usa ka bulan"],
+  noMeetYet:["No meetings yet","Wala pang pulong","Wala pay tigom"],
+  noUnit:["No unit set","Walang unit","Walay unit"],
+  chEmptyT:["No households have shared yet.","Wala pang household na nagbahagi.","Wala pay household nga nakapaambit."],
+  chEmptyB:["Each household servant’s numbers appear here after they open this app from your shared link and update their folder. Only counts are shared — never names or notes.","Lalabas dito ang bilang ng bawat household servant kapag binuksan nila ang app mula sa shared link at nag-update ng folder. Bilang lang ang ibinabahagi — hindi pangalan o tala.","Mogawas dinhi ang mga numero sa matag household servant human nila ablihi ang app gikan sa shared link ug mag-update sa ilang folder. Numero ra ang ipaambit — dili ngalan o nota."],
+  updated:[d=>`Updated ${d}`, d=>`Na-update ${d}`, d=>`Na-update ${d}`],
+  chFoot:["Each household updates here whenever its servant saves a change. Only counts are shared.","Nag-a-update ito tuwing may sine-save ang household servant. Bilang lang ang ibinabahagi.","Ma-update kini matag higayon nga adunay i-save ang household servant. Numero ra ang ipaambit."],
+  ofMembers:[(a,b)=>`${a} of ${b}`, (a,b)=>`${a} sa ${b}`, (a,b)=>`${a} sa ${b}`]
+};
+
+Object.assign(L, {
+  signIn:["Sign in","Mag-sign in","Pag-sign in"], createAcct:["Create account","Gumawa ng account","Paghimo og account"],
+  email:["Email","Email","Email"], password:["Password","Password","Password"], yourName:["Your name","Iyong pangalan","Imong ngalan"],
+  haveAcct:["Already have an account? Sign in","May account na? Mag-sign in","Naa nay account? Pag-sign in"],
+  noAcct:["New here? Create an account","Bago ka rito? Gumawa ng account","Bag-o ka dinhi? Paghimo og account"],
+  authIntro:["For CFC leaders. Your pastoral notes are private to you.","Para sa mga CFC leader. Ikaw lang ang makakakita ng iyong pastoral notes.","Para sa mga CFC leader. Ikaw ra ang makakita sa imong pastoral notes."],
+  checkEmail:["Account created. Check your email to confirm it, then sign in.","Nagawa na ang account. Tingnan ang email para kumpirmahin, saka mag-sign in.","Nahimo na ang account. Susiha ang email aron kumpirmahon, dayon pag-sign in."],
+  errAuth:["Email or password is incorrect.","Mali ang email o password.","Sayop ang email o password."],
+  errSignup:["Couldn’t create the account. Use a valid email and a password of at least 6 characters.","Hindi nagawa ang account. Gumamit ng tamang email at password na hindi bababa sa 6 na karakter.","Wala nahimo ang account. Gamita ang saktong email ug password nga dili moubos sa 6 ka karakter."],
+  pendingT:["Waiting for approval","Naghihintay ng pag-apruba","Naghulat sa pag-aprobar"],
+  pendingB:["Your account is created. Ask your Chapter Servant to approve it and assign your unit, then reload this page.","Nagawa na ang account mo. Hilingin sa iyong Chapter Servant na aprubahan ito at italaga ang iyong unit, saka i-reload ang page.","Nahimo na ang imong account. Hangyoa ang imong Chapter Servant nga aprobahan kini ug itudlo ang imong unit, dayon i-reload ang page."],
+  reload:["Reload","I-reload","I-reload"], signOut:["Sign out","Mag-sign out","Pag-sign out"], account:["Account","Account","Account"],
+  signedInAs:[n=>`Signed in as ${n}`, n=>`Naka-sign in bilang ${n}`, n=>`Naka-sign in isip ${n}`],
+  unitAssigned:["Unit (assigned by your Chapter Servant)","Unit (itinalaga ng Chapter Servant)","Unit (gitudlo sa Chapter Servant)"],
+  role_pending:["Waiting for approval","Naghihintay ng apruba","Naghulat sa aprobar"],
+  role_household:["Household Servant","Household Servant","Household Servant"], role_unit:["Unit Servant","Unit Servant","Unit Servant"], role_chapter:["Chapter Servant","Chapter Servant","Chapter Servant"],
+  leaders:["Leaders","Mga leader","Mga leader"],
+  leadersSub:["Approve new accounts and assign roles and units. Unit names must match exactly.","Aprubahan ang mga bagong account at italaga ang tungkulin at unit. Dapat eksaktong magkatugma ang pangalan ng unit.","Aprobahi ang mga bag-ong account ug itudlo ang papel ug unit. Kinahanglang managsama gyud ang ngalan sa unit."],
+  nPending:[n=>`${n} waiting for approval`, n=>`${n} naghihintay ng apruba`, n=>`${n} naghulat sa aprobar`],
+  leaderSaved:["Leader updated","Na-update ang leader","Na-update ang leader"],
+  errLeader:["Couldn’t update. Only Chapter Servants can change roles.","Hindi na-update. Chapter Servant lang ang makakapagbago ng tungkulin.","Wala na-update. Chapter Servant ra ang makausab sa papel."],
+  tabUnit:["Unit","Unit","Unit"], unitTitle:["Unit overview","Kabuuan ng unit","Kinatibuk-an sa unit"],
+  restoreT:["Restore from backup","I-restore mula sa backup","I-restore gikan sa backup"],
+  restoreB:["Load a backup file from the previous Household Servant or from the claude.ai version of this app. Records with the same ID are replaced.","Mag-load ng backup file mula sa dating Household Servant o sa claude.ai na bersyon ng app. Papalitan ang record na may parehong ID.","Pag-load og backup file gikan sa kanhing Household Servant o sa claude.ai nga bersyon sa app. Ilisan ang record nga parehas og ID."],
+  chooseFile:["Choose backup file","Pumili ng backup file","Pilia ang backup file"],
+  restored:[n=>`Restored ${n} records`, n=>`Na-restore ang ${n} record`, n=>`Na-restore ang ${n} ka record`],
+  errRestore:["That file isn’t a valid backup.","Hindi wastong backup ang file na iyan.","Dili husto nga backup ang maong file."],
+  refresh:["Refresh","I-refresh","I-refresh"],
+  noUnitWarn:["You don’t have a unit yet, so your referrals reach your Chapter Servant only.","Wala ka pang unit, kaya sa Chapter Servant lang mapupunta ang referral mo.","Wala pa kay unit, mao nga sa Chapter Servant ra moadto ang imong referral."],
+  errLoad:["Couldn’t reach the server. Check your connection and reload.","Hindi maabot ang server. Tingnan ang koneksyon at i-reload.","Dili maabot ang server. Susiha ang koneksyon ug i-reload."]
+});
+const FLAG_CATS = ["Marriage","Family","Finances","Health","Grief or loss","Faith and commitment","Conflict in the household","Other"];
+const NOTE_KINDS = ["Home visit","Phone call","Message","Talk after meeting","Prayer time","Other"];
+
+/* ---------------- state ---------------- */
+const S = {
+  view:"flock", memberId:null, q:"", flagTab:"inbox", lang:"en", authMode:"signin", authMsg:"", authErr:"",
+  items:new Map(), flags:[], summaries:new Map(), profiles:new Map(),
+  phase:"loading", session:null, me:null, sumTimer:null, lastSummary:null
+};
+const LANG_KEY = "cfc-shepherd-lang";
+try { const l = localStorage.getItem(LANG_KEY); if (l) S.lang = l; } catch(e){}
+function t(k, ...a){ const e = L[k]; if (!e) return k; const i = Math.max(0, LANGS.findIndex(x=>x[0]===S.lang)); const v = e[i] ?? e[0]; return typeof v === "function" ? v(...a) : v; }
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = p => p + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const daysSince = d => d ? Math.floor((Date.now() - new Date(d + "T12:00:00").getTime()) / 864e5) : null;
+const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString(LOCALE[S.lang],{month:"short",day:"numeric",year:"numeric"}) : "";
+const fmtDay = d => d ? new Date(d + "T12:00:00").toLocaleDateString(LOCALE[S.lang],{month:"long",day:"numeric"}) : "";
+const byKind = k => [...S.items.values()].filter(x => x.kind === k);
+const members = () => byKind("member").sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+const meetings = () => byKind("meeting").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+const topics = () => byKind("topic").sort((a,b)=>(a.title||"").localeCompare(b.title||""));
+const settings = () => S.items.get("settings") || {id:"settings",kind:"settings",household:""};
+const coupleName = m => m.name + (m.spouse ? ` & ${m.spouse}` : "");
+const role = () => S.me?.role || "pending";
+const isOverseer = () => role() === "unit" || role() === "chapter";
+const myId = () => S.session?.user?.id;
+
+function toast(msg){ const el=$("#toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(el._h); el._h=setTimeout(()=>el.classList.remove("show"),2600); }
+function setLang(l){ S.lang = l; document.documentElement.lang = l === "tl" ? "fil" : l; try { localStorage.setItem(LANG_KEY, l); } catch(e){} render(); }
+
+/* ---------------- Supabase ---------------- */
+const configured = !SUPABASE_URL.includes("YOUR-PROJECT") && !SUPABASE_ANON_KEY.includes("YOUR-ANON");
+const sb = configured && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+async function loadAll(){
+  const uidMe = myId();
+  const {data: me, error} = await sb.from("profiles").select("*").eq("id", uidMe).maybeSingle();
+  if (error) { S.phase = "error"; render(); return; }
+  S.me = me || {id:uidMe, role:"pending", display_name:"", unit:""};
+  if (S.me.role === "pending") { S.phase = "pending"; render(); return; }
+  const [items, flags, sums, profs] = await Promise.all([
+    sb.from("items").select("id,kind,data"),
+    sb.from("flags").select("*").order("created_on",{ascending:false}),
+    sb.from("summaries").select("*"),
+    sb.from("profiles").select("id,display_name,role,unit,email,created_at")
+  ]);
+  if (items.error) { S.phase = "error"; render(); return; }
+  S.items.clear(); (items.data||[]).forEach(r => S.items.set(r.id, {...r.data, id:r.id, kind:r.kind}));
+  S.flags = flags.data || [];
+  S.summaries.clear(); (sums.data||[]).forEach(r => S.summaries.set(r.owner, r));
+  S.profiles.clear(); (profs.data||[]).forEach(p => S.profiles.set(p.id, p));
+  const mine = S.summaries.get(uidMe); S.lastSummary = mine ? JSON.stringify(mine.data) : null;
+  const sl = settings().lang; if (sl && sl !== S.lang) setLang(sl);
+  S.phase = "app"; render();
+  if (!mine && members().length) scheduleSummary();
+}
+async function refreshShared(){
+  if (S.phase !== "app") return;
+  const [flags, sums, profs] = await Promise.all([
+    sb.from("flags").select("*").order("created_on",{ascending:false}),
+    sb.from("summaries").select("*"),
+    sb.from("profiles").select("id,display_name,role,unit,email,created_at")
+  ]);
+  if (!flags.error) S.flags = flags.data || [];
+  if (!sums.error) { S.summaries.clear(); (sums.data||[]).forEach(r => S.summaries.set(r.owner, r)); }
+  if (!profs.error) { S.profiles.clear(); (profs.data||[]).forEach(p => S.profiles.set(p.id, p)); const me = S.profiles.get(myId()); if (me) S.me = {...S.me, ...me}; }
+  render();
+}
+async function save(item){
+  const clean = JSON.parse(JSON.stringify(item));
+  const {id, kind, ...data} = clean;
+  S.items.set(id, clean); render();
+  const {error} = await sb.from("items").upsert({owner: myId(), id, kind, data, updated_at: new Date().toISOString()});
+  if (error) toast(t("errSave")); else scheduleSummary();
+}
+async function remove(id){
+  S.items.delete(id); render();
+  const {error} = await sb.from("items").delete().eq("id", id).eq("owner", myId());
+  if (error) toast(t("errDel")); else scheduleSummary();
+}
+function buildSummary(){
+  const st = settings(), ms = members();
+  return {
+    household: st.household || "", memberCount: ms.length, clpCount: ms.filter(m=>m.clp).length,
+    lastContacts: ms.map(m => lastContact(m)),
+    meetings: meetings().slice(0,12).map(mt => ({date: mt.date || "", attended: (mt.attendees||[]).filter(id=>S.items.has(id)).length}))
+  };
+}
+function scheduleSummary(){ clearTimeout(S.sumTimer); S.sumTimer = setTimeout(writeSummary, 1500); }
+async function writeSummary(){
+  const next = buildSummary(), json = JSON.stringify(next);
+  if (json === S.lastSummary) return;
+  const {error} = await sb.from("summaries").upsert({owner: myId(), data: next});
+  if (!error) S.lastSummary = json;
+}
+
+/* ---------------- care status ---------------- */
+function lastContact(m){ const ds = (m.notes||[]).map(n=>n.date).filter(Boolean).sort(); return ds.length ? ds[ds.length-1] : null; }
+function care(m){
+  const d = daysSince(lastContact(m));
+  if (d === null) return {cls:"late", label:t("noContact"), color:"var(--rust)", frac:0, d};
+  if (d <= 14) return {cls:"ok", label: d===0?t("today"):t("dAgo",d), color:"var(--sage)", frac:1 - d/30, d};
+  if (d <= 30) return {cls:"due", label:t("dAgo",d), color:"var(--gold)", frac:Math.max(.08,1 - d/30), d};
+  return {cls:"late", label:t("dAgo",d), color:"var(--rust)", frac:.04, d};
+}
+const initials = n => (n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+function ring(m){
+  const c = care(m), r = 22, Lc = 2*Math.PI*r;
+  return `<div class="ring" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="${r}" fill="none" stroke="var(--sunk)" stroke-width="4"/><circle cx="26" cy="26" r="${r}" fill="none" stroke="${c.color}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${Lc*c.frac} ${Lc}"/></svg><span>${esc(initials(m.name))}</span></div>`;
+}
+function attendance(m){
+  const past = meetings().filter(x => x.date && x.date <= today());
+  const att = past.filter(x => (x.attendees||[]).includes(m.id)).length;
+  return {att, total: past.length, pct: past.length ? Math.round(att/past.length*100) : null};
+}
+
+/* ---------------- celebrations ---------------- */
+function nextOccurrence(dateStr){
+  if (!dateStr) return null;
+  const [, mo, da] = dateStr.split("-").map(Number); if (!mo || !da) return null;
+  const now = new Date(today() + "T12:00:00");
+  let n = new Date(now.getFullYear(), mo-1, da, 12);
+  if (n < now) n = new Date(now.getFullYear()+1, mo-1, da, 12);
+  return {days: Math.round((n - now)/864e5), year: n.getFullYear()};
+}
+function celebrations(withinDays = 30){
+  const out = [];
+  members().forEach(m => {
+    const add = (date, kind, who) => {
+      const o = nextOccurrence(date); if (!o || o.days > withinDays) return;
+      const born = Number((date||"").slice(0,4));
+      out.push({m, kind, who, days:o.days, date, years: kind === "anniv" && born > 1900 && born < o.year ? o.year - born : null});
+    };
+    add(m.birthday, "bday", m.name);
+    if (m.spouse) add(m.spouseBirthday, "bday", m.spouse);
+    add(m.anniversary, "anniv", coupleName(m));
+  });
+  return out.sort((a,b)=>a.days-b.days);
+}
+const whenLabel = d => d===0 ? t("today") : d===1 ? t("tomorrow") : t("inDays", d);
+const greeting = c => c.kind === "bday" ? t("greetBday", c.who) : t("greetAnniv", c.who, c.years);
+
+/* ---------------- views ---------------- */
+const ICONS = {
+  flock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M3 19c.6-3.3 3-5 6-5s5.4 1.7 6 5M15 14.5c2.5 0 4.6 1.3 5.2 4.5"/></svg>',
+  meetings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  topics:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5c2.5-1 5.5-1 8 .5v13c-2.5-1.5-5.5-1.5-8-.5zM20 5.5c-2.5-1-5.5-1-8 .5v13c2.5-1.5 5.5-1.5 8-.5z"/></svg>',
+  flags:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+  chapter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V5M16 20v-7M21 20H3"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/></svg>'
+};
+function renderTabs(){
+  const nav = document.querySelector("nav.tabs");
+  if (S.phase !== "app") { nav.hidden = true; return; }
+  nav.hidden = false;
+  const openForMe = isOverseer() ? S.flags.filter(f=>f.sender!==myId() && f.status==="open").length : 0;
+  const tabs = [["flock",t("tabFlock")],["meetings",t("tabMeet")],["topics",t("tabTopics")],["flags",t("tabFlags")]];
+  if (isOverseer()) tabs.push(["chapter", role()==="chapter"?t("tabChapter"):t("tabUnit")]);
+  tabs.push(["more",t("tabExport")]);
+  const el = $("#tabs"); el.style.gridTemplateColumns = `repeat(${tabs.length},1fr)`;
+  el.innerHTML = tabs.map(([k,l]) => `<button data-tab="${k}" ${S.view===k||(k==="flock"&&S.view==="member")?'aria-current="page"':""}>${ICONS[k]}${esc(l)}${k==="flags"&&openForMe?`<span class="badge">${openForMe}</span>`:""}</button>`).join("");
+}
+const FOOTER = `<footer class="foot">© 2026 PCANetwork. All Rights Reserved.</footer>`;
+function render(){
+  renderTabs();
+  const app = $("#app");
+  const keepFocus = document.activeElement?.id;
+  let html;
+  if (!configured) html = `<div class="auth"><h1>Setup needed</h1><p>Open <b>index.html</b> and paste your Supabase project URL and anon key into <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> near the top of the script. See README.md for the full steps.</p></div>`;
+  else if (S.phase === "loading") html = `<p class="muted">${t("opening")}</p>`;
+  else if (S.phase === "error") html = `<div class="auth"><p>${t("errLoad")}</p><button class="btn primary" data-act="reload">${t("reload")}</button></div>`;
+  else if (S.phase === "auth") html = viewAuth();
+  else if (S.phase === "pending") html = `<div class="auth"><h1>${t("pendingT")}</h1><p>${t("pendingB")}</p><p class="small muted">${esc(t("signedInAs", S.session?.user?.email||""))}</p><div class="row"><button class="btn primary" data-act="reload">${t("reload")}</button><button class="btn" data-act="signout">${t("signOut")}</button>${langSelect()}</div></div>`;
+  else { const v = S.view; html = v==="member" ? viewMember() : v==="meetings" ? viewMeetings() : v==="topics" ? viewTopics() : v==="flags" ? viewFlags() : v==="chapter" ? viewChapter() : v==="more" ? viewExport() : viewFlock(); }
+  app.innerHTML = html + FOOTER;
+  if (keepFocus === "q") { const q=$("#q"); if(q){ q.focus(); q.setSelectionRange(q.value.length,q.value.length);} }
+}
+const headerBlock = (title, sub, action="") => `<header class="top"><div><h1>${title}</h1>${sub?`<div class="sub">${sub}</div>`:""}</div>${action}</header>`;
+const langSelect = () => `<select class="lang" data-lang aria-label="${esc(t("language"))}">${LANGS.map(([k,n])=>`<option value="${k}" ${S.lang===k?"selected":""}>${n}</option>`).join("")}</select>`;
+
+function viewAuth(){
+  const up = S.authMode === "signup";
+  return `<div class="auth"><div class="spread"><h1>Household Shepherd</h1>${langSelect()}</div><p class="muted">${t("authIntro")}</p>
+  <form class="panel" id="authForm">
+    ${up?`<label class="f" for="an">${t("yourName")}</label><input id="an" name="name" type="text" required autocomplete="name">`:""}
+    <label class="f" for="ae">${t("email")}</label><input id="ae" name="email" type="email" required autocomplete="email" style="width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+    <label class="f" for="ap">${t("password")}</label><input id="ap" name="password" type="password" required minlength="6" autocomplete="${up?"new-password":"current-password"}" style="width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+    ${S.authErr?`<p class="err">${esc(S.authErr)}</p>`:""}${S.authMsg?`<p class="notice">${esc(S.authMsg)}</p>`:""}
+    <button class="btn primary" style="width:100%;margin-top:16px">${up?t("createAcct"):t("signIn")}</button>
+  </form>
+  <p style="text-align:center"><button class="btn ghost" data-act="authswitch">${up?t("haveAcct"):t("noAcct")}</button></p></div>`;
+}
+
+function viewFlock(){
+  const st = settings(), ms = members();
+  const q = S.q.trim().toLowerCase();
+  const list = ms.filter(m => !q || [m.name,m.spouse,m.household].join(" ").toLowerCase().includes(q)).sort((a,b)=>(care(b).d??999)-(care(a).d??999));
+  const due = ms.filter(m => (care(m).d ?? 999) > 30).length;
+  const sub = `${esc(st.household || t("yourHH"))} · ${t("nMembers", ms.length)}${due?` · ${t("nFollow", due)}`:""}`;
+  const cels = celebrations();
+  let body;
+  if (!ms.length) body = `<div class="empty"><strong>${t("emptyT")}</strong>${t("emptyB")}<div class="row" style="margin-top:14px"><button class="btn primary" data-act="add-member">${t("addMember")}</button><button class="btn" data-act="settings">${t("nameHH")}</button></div></div>`;
+  else body = (cels.length ? `<section class="panel" style="margin:0 0 16px"><h3>🎉 ${t("upcomingCel")}</h3><ul class="cel">${cels.map((c,i)=>`<li><div><div class="when">${whenLabel(c.days)} · ${fmtDay(c.date)}</div><div>${esc(c.who)} <span class="muted small">— ${c.kind==="bday"?t("bday"):t("anniv")}${c.years?` (${t("yearsMarried",c.years)})`:""}</span></div></div><button class="btn ghost" data-greet="${i}">${t("copyGreet")}</button></li>`).join("")}</ul></section>` : "")
+    + `<input class="search" id="q" type="search" placeholder="${esc(t("search"))}" value="${esc(S.q)}" aria-label="${esc(t("search"))}">
+    <ul class="flock">${list.map(m=>{const c=care(m), np=(m.prayer||[]).filter(p=>!p.answered).length;return `<li><button data-open="${esc(m.id)}">${ring(m)}<div class="who"><strong>${esc(coupleName(m))}</strong><div class="meta">${m.clp?t("clpGrad"):t("clpNot")}${np?` · ${t("nPrayer",np)}`:""}</div></div><span class="tag ${c.cls}">${esc(c.label)}</span></button></li>`}).join("")}</ul>
+    ${list.length?"":`<p class="muted">${esc(t("noMatch", S.q))}</p>`}
+    <div class="legend"><span><i style="background:var(--sage)"></i>${t("lg1")}</span><span><i style="background:var(--gold)"></i>${t("lg2")}</span><span><i style="background:var(--rust)"></i>${t("lg3")}</span></div>`;
+  return headerBlock(t("myFlock"), sub, `<div class="row">${langSelect()}<button class="btn ghost" data-act="settings">${t("settings")}</button>${ms.length?`<button class="btn primary" data-act="add-member">${t("add")}</button>`:""}</div>`) + body;
+}
+
+function viewMember(){
+  const m = S.items.get(S.memberId);
+  if (!m) { S.view="flock"; return viewFlock(); }
+  const c = care(m), a = attendance(m);
+  const notes = [...(m.notes||[])].sort((x,y)=>(y.date||"").localeCompare(x.date||""));
+  const prayers = m.prayer||[];
+  const dates = [[m.birthday, `${t("bday")} — ${esc(m.name)}`], [m.spouse && m.spouseBirthday, `${t("bday")} — ${esc(m.spouse)}`], [m.anniversary, t("anniv")]].filter(x=>x[0]);
+  return `<button class="btn ghost back" data-nav="flock">${t("back")}</button>
+  <header class="top"><div class="row" style="gap:14px">${ring(m)}<div><h1>${esc(coupleName(m))}</h1><div class="sub">${esc([m.household,m.phone].filter(Boolean).join(" · ")) || t("noDetails")}</div></div></div><button class="btn" data-act="edit-member">${t("edit")}</button></header>
+  <div class="stats"><div><b>${c.d===null?"—":c.d+"d"}</b><span>${t("sinceContact")}</span></div><div><b>${a.pct===null?"—":a.pct+"%"}</b><span>${t("attended",a.att,a.total)}</span></div><div><b>${m.clp?esc(m.clpYear||t("yes")):t("notYet")}</b><span>CLP</span></div></div>
+  <div class="row" style="margin-top:14px"><button class="btn primary" data-act="add-note">${t("logNote")}</button><button class="btn warn" data-act="flag">${t("flag")}</button></div>
+  <section class="panel"><div class="spread"><h3>${t("pNotes")}</h3><span class="small muted">${t("privateYou")}</span></div>
+  ${notes.length?`<ul class="timeline">${notes.map(n=>`<li><div class="spread"><span class="when">${fmtDate(n.date)} · ${esc(t("nt_"+n.type))}</span><button class="btn ghost small" data-del-note="${esc(n.id)}">${t("del")}</button></div><p>${esc(n.text)}</p></li>`).join("")}</ul>`:`<p class="muted small">${t("noNotes")}</p>`}</section>
+  <section class="panel"><div class="spread"><h3>${t("prayers")}</h3><button class="btn ghost" data-act="add-prayer">${t("add")}</button></div>
+  ${prayers.length?prayers.map(p=>`<label class="check"><input type="checkbox" data-pray="${esc(p.id)}" ${p.answered?"checked":""}><span><span style="${p.answered?"text-decoration:line-through;color:var(--muted)":""}">${esc(p.text)}</span><br><span class="small muted">${fmtDate(p.date)}${p.answered?` · ${t("answered")}`:""}</span></span></label>`).join(""):`<p class="muted small">${t("noneYet")}</p>`}</section>
+  ${dates.length?`<section class="panel"><h3>${t("specialDates")}</h3><ul class="cel">${dates.map(([d,l])=>{const o=nextOccurrence(d);return `<li><span>${l}</span><span class="small muted">${fmtDay(d)}${o&&o.days<=30?` · <span class="when">${whenLabel(o.days)}</span>`:""}</span></li>`}).join("")}</ul></section>`:""}
+  <section class="panel"><div class="spread"><h3>${t("formation")}</h3><button class="btn ghost" data-act="add-formation">${t("add")}</button></div>
+  <p class="small muted" style="margin:0 0 6px">${t("formationSub")}</p>
+  ${(m.formation||[]).length?`<ul class="timeline">${[...m.formation].sort((x,y)=>(y.date||"").localeCompare(x.date||"")).map(f=>`<li><div class="spread"><span><strong style="font-weight:600">${esc(f.name)}</strong> <span class="when">${fmtDate(f.date)}</span></span><button class="btn ghost small" data-del-form="${esc(f.id)}">${t("remove")}</button></div></li>`).join("")}</ul>`:`<p class="muted small">${t("nothingLogged")}</p>`}</section>
+  ${m.context?`<section class="panel"><h3>${t("context")}</h3><p style="white-space:pre-wrap;margin:0">${esc(m.context)}</p></section>`:""}
+  <p style="margin-top:22px"><button class="btn ghost" style="color:var(--rust)" data-act="delete-member">${esc(t("removeFrom", m.name))}</button></p>`;
+}
+
+function viewMeetings(){
+  const ms = meetings(), up = ms.filter(x=>x.date>=today()).reverse(), past = ms.filter(x=>x.date<today());
+  const nextHost = suggestHost();
+  const card = mt => {
+    const host = S.items.get(mt.hostId);
+    return `<div class="panel"><div class="spread"><div><h3>${fmtDate(mt.date)}${mt.time?` · ${esc(fmtTime(mt.time))}`:""}</h3><div class="small muted">${host?esc(t("atHome",host.name)):esc(mt.venue||t("venueTBD"))}${mt.topic?` · ${esc(mt.topic)}`:""}</div></div><button class="btn ghost" data-meet="${esc(mt.id)}">${t("open")}</button></div>
+    ${mt.date<=today()?`<div class="small muted" style="margin-top:6px">${t("ofAttended",(mt.attendees||[]).length,members().length)}</div>`:""}</div>`;
+  };
+  return headerBlock(t("hhMeetings"), nextHost?esc(t("nextHost",nextHost.name)):t("rotate"), `<button class="btn primary" data-act="add-meeting" ${members().length?"":"disabled"}>${t("schedule")}</button>`)
+   + (members().length?"":`<div class="empty"><strong>${t("addFirstT")}</strong>${t("addFirstB")}</div>`)
+   + (up.length?`<h2 style="margin-top:8px">${t("comingUp")}</h2>${up.map(card).join("")}`:"")
+   + (past.length?`<h2 style="margin-top:22px">${t("pastMeet")}</h2>${past.map(card).join("")}`:"")
+   + (!ms.length && members().length?`<div class="empty"><strong>${t("noMeetT")}</strong>${t("noMeetB")}</div>`:"");
+}
+function fmtTime(tm){ const [h,mi]=tm.split(":").map(Number); const d=new Date(); d.setHours(h,mi); return d.toLocaleTimeString(LOCALE[S.lang],{hour:"numeric",minute:"2-digit"}); }
+function suggestHost(){
+  const ms = members(); if (!ms.length) return null;
+  const last = {}; meetings().forEach(mt => { if (mt.hostId && (!last[mt.hostId] || mt.date > last[mt.hostId])) last[mt.hostId] = mt.date; });
+  return [...ms].sort((a,b)=>(last[a.id]||"").localeCompare(last[b.id]||""))[0];
+}
+function reminderText(mt){
+  const host = S.items.get(mt.hostId);
+  const place = host ? t("placeHome", host.name) : mt.venue ? t("placeVenue", mt.venue) : t("placeTBD");
+  return t("reminder", fmtDate(mt.date), mt.time ? fmtTime(mt.time) : "", place, host?.address || "", mt.topic || "");
+}
+
+function viewTopics(){
+  const ts = topics(), ms = meetings();
+  const used = tp => ms.filter(m=>m.topic===tp.title && m.date<=today()).map(m=>m.date).sort().pop();
+  return headerBlock(t("topicLib"), t("topicSub"), `<button class="btn primary" data-act="add-topic">${t("addTopic")}</button>`)
+   + (ts.length?`<ul class="flock">${ts.map(tp=>{const u=used(tp);return `<li><button data-topic="${esc(tp.id)}" style="grid-template-columns:1fr auto"><div class="who"><strong>${tp.number?esc(tp.number)+". ":""}${esc(tp.title)}</strong><div class="meta">${esc(tp.source||"")}</div></div><span class="tag ${u?"ok":""}">${u?esc(t("covered",fmtDate(u))):t("notCovered")}</span></button></li>`}).join("")}</ul>`
+   : `<div class="empty"><strong>${t("noTopicsT")}</strong>${t("noTopicsB")}</div>`);
+}
+
+const personName = id => S.profiles.get(id)?.display_name || S.profiles.get(id)?.email || t("aServant");
+function viewFlags(){
+  const mine = S.flags.filter(f=>f.sender===myId()), inbox = S.flags.filter(f=>f.sender!==myId());
+  const tab = isOverseer() ? S.flagTab : "sent";
+  const list = tab==="inbox" ? inbox : mine;
+  const item = f => `<div class="flag ${f.urgency==="urgent"?"urgent":""} ${f.status==="resolved"?"resolved":""}">
+    <div class="spread"><strong>${esc(f.member_name)}</strong><span class="tag ${f.status==="open"?(f.urgency==="urgent"?"late":"due"):"ok"}">${t("st_"+f.status)}</span></div>
+    <div class="small muted">${esc(t("cat_"+f.category))} · ${f.urgency==="urgent"?t("urgent"):t("week")} · ${fmtDate(f.created_on)}${tab==="inbox"?` · ${esc(t("from", personName(f.sender)))}${f.household?` (${esc(f.household)})`:""}`:""}</div>
+    ${f.note?`<p style="margin:6px 0 0">${esc(f.note)}</p>`:""}
+    ${f.response?`<p class="small" style="margin:8px 0 0"><b>Unit Servant:</b> ${esc(f.response)}</p>`:""}
+    ${tab==="inbox"&&f.status!=="resolved"?`<div class="row" style="margin-top:10px">${f.status==="open"?`<button class="btn" data-ack="${f.id}">${t("acknowledge")}</button>`:""}<button class="btn primary" data-resolve="${f.id}">${t("markResolved")}</button></div>`:""}
+  </div>`;
+  return headerBlock(t("flagsTitle"), isOverseer()?t("inboxSub"):t("sentSub"), `<button class="btn ghost" data-act="refresh">${t("refresh")}</button>`)
+   + (!S.me?.unit && role()!=="chapter" ? `<div class="notice" style="margin:0 0 12px">${t("noUnitWarn")}</div>` : "")
+   + (isOverseer()?`<div class="seg" role="group"><button data-ftab="inbox" aria-pressed="${tab==="inbox"}">${t("unitInbox", inbox.filter(f=>f.status!=="resolved").length)}</button><button data-ftab="sent" aria-pressed="${tab==="sent"}">${t("sentByMe")}</button></div>`:"")
+   + (list.length?list.map(item).join(""):`<div class="empty"><strong>${tab==="inbox"?t("noInboxT"):t("noSentT")}</strong>${tab==="inbox"?t("noInboxB"):esc(t("noSentB", t("flag")))}</div>`)
+   + `<p class="small muted" style="margin-top:18px">${t("flagsFoot")}</p>`;
+}
+
+function hhStats(sid, s){
+  const fu = (s.lastContacts||[]).filter(d => { const x = daysSince(d); return x === null || x > 30; }).length;
+  const past = (s.meetings||[]).filter(m=>m.date && m.date<=today()).sort((a,b)=>b.date.localeCompare(a.date));
+  const last3 = past.slice(0,3);
+  const attPct = last3.length && s.memberCount ? Math.round(last3.reduce((x,m)=>x+Math.min(m.attended,s.memberCount),0) / (last3.length*s.memberCount) * 100) : null;
+  const next = (s.meetings||[]).filter(m=>m.date && m.date>today()).map(m=>m.date).sort()[0];
+  const flags = S.flags.filter(f=>f.sender===sid && f.status==="open").length;
+  return {fu, attPct, lastMeet: past[0]?.date, next, flags};
+}
+function viewChapter(){
+  const isCh = role() === "chapter";
+  const title = isCh ? t("chapterTitle") : t("unitTitle");
+  const rows = [...S.summaries.entries()].filter(([,r])=>r.data?.memberCount>0).map(([id,r]) => ({id, s:r.data, unit:S.profiles.get(id)?.unit||"", k:hhStats(id,r.data), updated:r.updated_on}));
+  let body = "";
+  if (!rows.length) body = `<div class="empty"><strong>${t("chEmptyT")}</strong>${t("chEmptyB")}</div>`;
+  else {
+    const totM = rows.reduce((x,r)=>x+r.s.memberCount,0), totClp = rows.reduce((x,r)=>x+r.s.clpCount,0), totFu = rows.reduce((x,r)=>x+r.k.fu,0);
+    const attRows = rows.filter(r=>r.k.attPct!==null);
+    const avgAtt = attRows.length ? Math.round(attRows.reduce((x,r)=>x+r.k.attPct*r.s.memberCount,0)/attRows.reduce((x,r)=>x+r.s.memberCount,0)) : null;
+    const openFlags = S.flags.filter(f=>f.status==="open").length;
+    const units = {}; rows.forEach(r => (units[r.unit] = units[r.unit] || []).push(r));
+    const unitKeys = Object.keys(units).sort((a,b)=> (a===""?1:0)-(b===""?1:0) || a.localeCompare(b));
+    const hhRow = r => {
+      const stale = !r.k.lastMeet || daysSince(r.k.lastMeet) > 30;
+      return `<div class="hh"><div class="spread"><div><strong>${esc(r.s.household || t("yourHH"))}</strong><div class="small muted">${esc(personName(r.id))} · ${t("nMembers", r.s.memberCount)} · CLP ${t("ofMembers", r.s.clpCount, r.s.memberCount)}</div></div>
+        <div class="row" style="gap:6px;justify-content:flex-end">${r.k.flags?`<span class="tag late">${r.k.flags} ${t("cFlags").toLowerCase()}</span>`:""}${r.k.fu?`<span class="tag due">${esc(t("nFollow", r.k.fu))}</span>`:""}</div></div>
+        <div class="small" style="margin-top:6px;color:${stale?"var(--rust)":"var(--muted)"}">${r.k.lastMeet ? (stale?t("noMeet30"):esc(t("lastMeet", fmtDate(r.k.lastMeet)))) : t("noMeetYet")}${r.k.next?` · ${esc(t("nextMeet", fmtDate(r.k.next)))}`:""} · ${esc(t("updated", fmtDate(r.updated)))}</div>
+        ${r.k.attPct!==null?`<div class="bar"><i style="width:${r.k.attPct}%"></i></div><div class="small muted">${t("cAtt")}: ${r.k.attPct}%</div>`:""}</div>`;
+    };
+    body = `<div class="stats four" style="margin:0"><div><b>${totFu}</b><span>${t("cFollow")}</span></div><div><b>${avgAtt===null?"—":avgAtt+"%"}</b><span>${t("cAtt")}</span></div><div><b>${totM?Math.round(totClp/totM*100):0}%</b><span>${t("cClp")} (${totClp})</span></div><div><b>${openFlags}</b><span>${t("cFlags")}</span></div></div>`
+     + unitKeys.map(u => `<section class="panel"><h3>${u ? esc(u) : t("noUnit")}</h3>${units[u].sort((a,b)=>b.k.fu-a.k.fu).map(hhRow).join("")}</section>`).join("")
+     + `<p class="small muted" style="margin-top:14px">${t("chFoot")}</p>`;
+    var sub = t("chapterSub", rows.length, totM);
+  }
+  return headerBlock(title, sub || "", `<button class="btn ghost" data-act="refresh">${t("refresh")}</button>`) + body + (isCh ? viewLeaders() : "");
+}
+function viewLeaders(){
+  const people = [...S.profiles.values()].sort((a,b)=> (a.role==="pending"?0:1)-(b.role==="pending"?0:1) || (a.display_name||"").localeCompare(b.display_name||""));
+  const pending = people.filter(p=>p.role==="pending").length;
+  return `<section class="panel" style="margin-top:24px"><div class="spread"><h3>${t("leaders")}</h3>${pending?`<span class="tag late">${t("nPending",pending)}</span>`:""}</div>
+  <p class="small muted" style="margin:0 0 6px">${t("leadersSub")}</p>
+  ${people.map(p=>`<div class="leader"><div><strong style="font-weight:600">${esc(p.display_name||"—")}</strong><div class="small muted">${esc(p.email||"")}</div></div>
+    <select data-role-for="${p.id}" aria-label="${esc(t("role"))}">${["pending","household","unit","chapter"].map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${t("role_"+r)}</option>`).join("")}</select>
+    <input type="text" data-unit-for="${p.id}" value="${esc(p.unit)}" placeholder="${esc(t("unitName"))}" aria-label="${esc(t("unitName"))}">
+    <button class="btn" data-save-leader="${p.id}">${t("save")}</button></div>`).join("")}</section>`;
+}
+
+function viewExport(){
+  const ms = members(), st = settings();
+  return headerBlock(t("exportTitle"), t("exportSub"))
+   + `<section class="panel"><h3>${t("repT")}</h3><p class="small muted" style="margin:0 0 12px">${t("repB")}</p><button class="btn primary" data-act="csv" ${ms.length?"":"disabled"}>${t("dlRep")}</button></section>
+     <section class="panel"><h3>${t("backupT")}</h3><p class="small muted" style="margin:0 0 12px">${t("backupB")}</p><button class="btn" data-act="json" ${ms.length?"":"disabled"}>${t("dlBackup")}</button></section>
+     <section class="panel"><h3>${t("restoreT")}</h3><p class="small muted" style="margin:0 0 12px">${t("restoreB")}</p><label class="btn" style="display:inline-block">${t("chooseFile")}<input type="file" accept=".json,application/json" id="restoreFile" hidden></label></section>
+     <section class="panel"><h3>${t("sharingT")}</h3><p class="small muted" style="margin:0">${t("sharingB")}</p></section>
+     <section class="panel"><h3>${t("account")}</h3><p class="small muted" style="margin:0 0 12px">${esc(t("signedInAs", S.me?.display_name || S.session?.user?.email || ""))} · ${t("role_"+role())}${S.me?.unit?` · ${esc(S.me.unit)}`:""}<br>${esc(st.household||t("notNamed"))}</p>
+     <div class="row"><button class="btn" data-act="settings">${t("editSettings")}</button>${langSelect()}<button class="btn" data-act="signout">${t("signOut")}</button></div></section>`;
+}
+
+/* ---------------- dialogs ---------------- */
+function openDialog(html, onSubmit, opts={}){
+  const d = $("#dlg");
+  d.innerHTML = `<form method="dialog">${html}<div class="actions"><button class="btn" type="button" data-close>${opts.closeOnly?"OK":t("cancel")}</button>${opts.closeOnly?"":`<button class="btn primary" value="ok">${t("save")}</button>`}</div></form>`;
+  const f = d.querySelector("form");
+  f.querySelector("[data-close]").onclick = () => d.close();
+  f.onsubmit = e => { e.preventDefault(); const data = Object.fromEntries(new FormData(f)); if (onSubmit(data, f) !== false) d.close(); };
+  d.showModal(); f.querySelector("input:not([type=checkbox]),textarea,select")?.focus();
+}
+function memberForm(m={}){
+  openDialog(`<h2>${m.id?t("editMember"):t("addMember")}</h2>
+   <label class="f" for="fn">${t("fName")}</label><input id="fn" name="name" type="text" required value="${esc(m.name)}">
+   <label class="f" for="fs">${t("fSpouse")}</label><input id="fs" name="spouse" type="text" value="${esc(m.spouse)}">
+   <div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label class="f" for="fb">${t("bday")}</label><input id="fb" name="birthday" type="date" value="${esc(m.birthday)}"></div><div style="flex:1"><label class="f" for="fsb">${t("spouseBday")}</label><input id="fsb" name="spouseBirthday" type="date" value="${esc(m.spouseBirthday)}"></div></div>
+   <label class="f" for="fan">${t("anniv")}</label><input id="fan" name="anniversary" type="date" value="${esc(m.anniversary)}">
+   <label class="f" for="fh">${t("fHH")}</label><input id="fh" name="household" type="text" value="${esc(m.household ?? settings().household)}">
+   <label class="f" for="fp">${t("fPhone")}</label><input id="fp" name="phone" type="tel" value="${esc(m.phone)}">
+   <label class="f" for="fa">${t("fAddr")}</label><input id="fa" name="address" type="text" value="${esc(m.address)}">
+   <label class="check" style="margin-top:10px"><input type="checkbox" name="clp" ${m.clp?"checked":""}><span>${t("fClp")}</span></label>
+   <label class="f" for="fy">${t("fClpYear")}</label><input id="fy" name="clpYear" type="number" min="1981" max="2100" value="${esc(m.clpYear)}">
+   <label class="f" for="fc">${t("fContext")}</label><textarea id="fc" name="context" placeholder="${esc(t("fContextPh"))}">${esc(m.context)}</textarea>`,
+   d => { save({notes:[],prayer:[],formation:[],...m, id:m.id||uid("m"), kind:"member", name:d.name.trim(), spouse:d.spouse.trim(), birthday:d.birthday, spouseBirthday:d.spouseBirthday, anniversary:d.anniversary, household:d.household.trim(), phone:d.phone.trim(), address:d.address.trim(), clp:!!d.clp, clpYear:d.clpYear, context:d.context.trim()}); toast(m.id?t("mUpdated"):t("mAdded")); });
+}
+function settingsForm(){
+  const s = settings();
+  openDialog(`<h2>${t("hhSettings")}</h2>
+   <label class="f" for="sn">${t("yourName")}</label><input id="sn" name="display_name" type="text" value="${esc(S.me?.display_name)}">
+   <label class="f" for="sh">${t("hhName")}</label><input id="sh" name="household" type="text" value="${esc(s.household)}">
+   <label class="f">${t("unitAssigned")}</label><input type="text" value="${esc(S.me?.unit || "—")}" disabled>
+   <label class="f">${t("role")}</label><input type="text" value="${esc(t("role_"+role()))}" disabled>
+   <label class="f" for="sl">${t("language")}</label><select id="sl" name="lang">${LANGS.map(([k,n])=>`<option value="${k}" ${S.lang===k?"selected":""}>${n}</option>`).join("")}</select>`,
+   d => {
+     setLang(d.lang); save({...s, household:d.household.trim(), lang:d.lang});
+     const nm = d.display_name.trim();
+     if (nm !== (S.me?.display_name||"")) sb.from("profiles").update({display_name:nm}).eq("id", myId()).then(({error})=>{ if(!error){ S.me.display_name = nm; render(); } });
+     toast(t("setSaved"));
+   });
+}
+function meetingForm(mt={}){
+  const ms = members(), sug = suggestHost();
+  const hostId = mt.hostId ?? sug?.id ?? "";
+  const isPast = mt.date && mt.date <= today();
+  openDialog(`<h2>${mt.id?t("hhMeeting"):t("schedMeeting")}</h2>
+   <div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label class="f" for="md">${t("date")}</label><input id="md" name="date" type="date" required value="${esc(mt.date||"")}"></div><div style="flex:1"><label class="f" for="mti">${t("time")}</label><input id="mti" name="time" type="time" value="${esc(mt.time||"19:00")}"></div></div>
+   <label class="f" for="mh">${t("hostHome")}</label><select id="mh" name="hostId"><option value="">${t("otherVenue")}</option>${ms.map(m=>`<option value="${esc(m.id)}" ${m.id===hostId?"selected":""}>${esc(m.name)}${m.id===sug?.id?" "+t("suggested"):""}</option>`).join("")}</select>
+   <label class="f" for="mv">${t("venueField")}</label><input id="mv" name="venue" type="text" value="${esc(mt.venue)}">
+   <label class="f" for="mto">${t("topic")}</label><input id="mto" name="topic" type="text" list="tlist" value="${esc(mt.topic)}"><datalist id="tlist">${topics().map(tp=>`<option value="${esc(tp.title)}">`).join("")}</datalist>
+   ${mt.id?`<fieldset style="border:0;padding:0;margin:14px 0 0"><legend class="f" style="margin:0">${t("attendance")}${isPast?"":t("fillAfter")}</legend>${ms.map(m=>`<label class="check"><input type="checkbox" name="att_${esc(m.id)}" ${(mt.attendees||[]).includes(m.id)?"checked":""}><span>${esc(coupleName(m))}</span></label>`).join("")}</fieldset>
+   <label class="f" for="mn">${t("meetNotes")}</label><textarea id="mn" name="notes">${esc(mt.notes)}</textarea>
+   <div class="row" style="margin-top:12px"><button type="button" class="btn" data-copy-reminder>${t("copyReminder")}</button><button type="button" class="btn ghost" style="color:var(--rust)" data-del-meeting>${t("delMeeting")}</button></div>`:""}`,
+   d => {
+     const attendees = Object.keys(d).filter(k=>k.startsWith("att_")).map(k=>k.slice(4));
+     const rec = {...mt, id:mt.id||uid("mt"), kind:"meeting", date:d.date, time:d.time, hostId:d.hostId, venue:d.venue.trim(), topic:d.topic.trim(), attendees: mt.id?attendees:(mt.attendees||[]), notes:(d.notes??mt.notes??"").trim()};
+     save(rec);
+     if (!mt.id) copyText(reminderText(rec), `${t("meetScheduled")}. ${t("remCopied")}`); else toast(t("meetSaved"));
+   });
+  const dl = $("#dlg");
+  dl.querySelector("[data-copy-reminder]")?.addEventListener("click", () => copyText(reminderText({...mt, ...Object.fromEntries(new FormData(dl.querySelector("form")))}), t("remCopied")));
+  dl.querySelector("[data-del-meeting]")?.addEventListener("click", () => { if (confirm(t("confirmDelMeet"))) { remove(mt.id); dl.close(); toast(t("meetDeleted")); } });
+}
+async function copyText(text, msg){
+  try { await navigator.clipboard.writeText(text); toast(msg); }
+  catch(e){ openDialog(`<h2>${t("copyThis")}</h2><textarea readonly style="min-height:140px;margin-top:10px">${esc(text)}</textarea>`, ()=>{}, {closeOnly:true}); }
+}
+function topicForm(tp={}){
+  openDialog(`<h2>${tp.id?t("editTopic"):t("addTopic")}</h2>
+   <label class="f" for="tt">${t("title")}</label><input id="tt" name="title" type="text" required value="${esc(tp.title)}">
+   <div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label class="f" for="tn">${t("number")}</label><input id="tn" name="number" type="text" value="${esc(tp.number)}"></div><div style="flex:2"><label class="f" for="ts">${t("source")}</label><input id="ts" name="source" type="text" value="${esc(tp.source ?? "Household Topic Book")}"></div></div>
+   <label class="f" for="tno">${t("leadNotes")}</label><textarea id="tno" name="notes">${esc(tp.notes)}</textarea>
+   ${tp.id?`<button type="button" class="btn ghost" style="color:var(--rust);margin-top:10px" data-del-topic>${t("delTopic")}</button>`:""}`,
+   d => { save({...tp, id:tp.id||uid("t"), kind:"topic", title:d.title.trim(), number:d.number.trim(), source:d.source.trim(), notes:d.notes.trim()}); toast(tp.id?t("tSaved"):t("tAdded")); });
+  $("#dlg [data-del-topic]")?.addEventListener("click", () => { remove(tp.id); $("#dlg").close(); toast(t("tDeleted")); });
+}
+function noteForm(m){
+  openDialog(`<h2>${t("logNote")}</h2><p class="small muted" style="margin:4px 0 0">${esc(coupleName(m))}</p>
+   <div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label class="f" for="nd">${t("date")}</label><input id="nd" name="date" type="date" required value="${today()}"></div><div style="flex:1"><label class="f" for="nk">${t("kind")}</label><select id="nk" name="type">${NOTE_KINDS.map(x=>`<option value="${x}">${esc(t("nt_"+x))}</option>`).join("")}</select></div></div>
+   <label class="f" for="nx">${t("talked")}</label><textarea id="nx" name="text" required placeholder="${esc(t("talkedPh"))}"></textarea>`,
+   d => { save({...m, notes:[...(m.notes||[]), {id:uid("n"), date:d.date, type:d.type, text:d.text.trim()}]}); toast(t("noteSaved")); });
+}
+function prayerForm(m){
+  openDialog(`<h2>${t("prayerReq")}</h2><label class="f" for="pr">${t("request")}</label><textarea id="pr" name="text" required></textarea>`,
+   d => { save({...m, prayer:[...(m.prayer||[]), {id:uid("p"), date:today(), text:d.text.trim(), answered:false}]}); toast(t("prayerAdded")); });
+}
+function formationForm(m){
+  openDialog(`<h2>${t("milestone")}</h2>
+   <label class="f" for="fo">${t("program")}</label><input id="fo" name="name" type="text" required list="flist"><datalist id="flist">${["Christian Life Program","Covenant Orientation","Household Servants Training","Marriage Enrichment","Family Life Retreat","Mensa Christi"].map(x=>`<option value="${x}">`).join("")}</datalist>
+   <label class="f" for="fd">${t("dateDone")}</label><input id="fd" name="date" type="date" value="${today()}">`,
+   d => { const rec = {...m, formation:[...(m.formation||[]), {id:uid("f"), name:d.name.trim(), date:d.date}]}; if (/christian life program|^clp$/i.test(d.name.trim())) { rec.clp = true; rec.clpYear = rec.clpYear || (d.date||"").slice(0,4); } save(rec); toast(t("msAdded")); });
+}
+function flagForm(m){
+  openDialog(`<h2>${t("flag")}</h2><p class="small muted" style="margin:4px 0 0">${esc(t("flagDesc", m.name))}</p>
+   <label class="f" for="fcat">${t("concern")}</label><select id="fcat" name="category">${FLAG_CATS.map(x=>`<option value="${x}">${esc(t("cat_"+x))}</option>`).join("")}</select>
+   <label class="f" for="furg">${t("howSoon")}</label><select id="furg" name="urgency"><option value="week">${t("week")}</option><option value="urgent">${t("urgentCall")}</option></select>
+   <label class="f" for="fnote">${t("shortNote")}</label><textarea id="fnote" name="note" maxlength="280" placeholder="${esc(t("shortNotePh"))}"></textarea>`,
+   async d => {
+     const {data, error} = await sb.from("flags").insert({member_name: coupleName(m).slice(0,200), household:(m.household||settings().household||"").slice(0,200), category:d.category, urgency:d.urgency, note:d.note.trim().slice(0,280)}).select().single();
+     if (error) { toast(t("errFlag")); return; }
+     S.flags.unshift(data); render(); toast(t("flagSent"));
+   });
+}
+async function updateFlag(fid, patch){
+  const {data, error} = await sb.from("flags").update(patch).eq("id", fid).select().single();
+  if (error || !data) { toast(t("errUpd")); return; }
+  S.flags = S.flags.map(f => f.id === fid ? data : f); render();
+  toast(patch.status==="resolved"?t("st_resolved"):t("st_ack"));
+}
+function respondForm(fid, status){
+  openDialog(`<h2>${status==="resolved"?t("markResolved"):t("ackTitle")}</h2><label class="f" for="rr">${t("respMsg")}</label><textarea id="rr" name="response" maxlength="500" placeholder="${esc(t("respPh"))}"></textarea>`,
+   d => { updateFlag(fid, {status, response:d.response.trim()}); });
+}
+async function saveLeader(id){
+  const r = document.querySelector(`[data-role-for="${id}"]`).value;
+  const u = document.querySelector(`[data-unit-for="${id}"]`).value.trim();
+  const {data, error} = await sb.from("profiles").update({role:r, unit:u}).eq("id", id).select().single();
+  if (error || !data) { toast(t("errLeader")); return; }
+  S.profiles.set(id, {...S.profiles.get(id), ...data});
+  if (id === myId()) S.me = {...S.me, ...data};
+  toast(t("leaderSaved")); render();
+}
+
+/* ---------------- export / restore ---------------- */
+function offerFile(filename, data, mime){
+  try { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:mime})); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); } catch(e){ toast(t("errDl")); }
+}
+function csv(){
+  const q = v => `"${String(v??"").replace(/"/g,'""')}"`;
+  const rows = [["Name","Spouse","Household","CLP completed","CLP year","Formation milestones","Meetings attended","Meetings held","Attendance %","Last pastoral contact"]];
+  members().forEach(m => { const a=attendance(m); rows.push([m.name,m.spouse,m.household,m.clp?"Yes":"No",m.clpYear,(m.formation||[]).map(f=>`${f.name} (${f.date})`).join("; "),a.att,a.total,a.pct??"",lastContact(m)||""]); });
+  offerFile(`household-report-${today()}.csv`, "\ufeff" + rows.map(r=>r.map(q).join(",")).join("\n"), "text/csv");
+}
+const backup = () => offerFile(`shepherd-folder-backup-${today()}.json`, JSON.stringify([...S.items.values()],null,2), "application/json");
+async function restore(file){
+  try {
+    const arr = JSON.parse(await file.text());
+    if (!Array.isArray(arr)) throw 0;
+    const rows = arr.filter(x => x && typeof x.id === "string" && ["member","meeting","topic","settings"].includes(x.kind))
+      .map(x => { const {id, kind, ...data} = x; return {owner: myId(), id, kind, data, updated_at: new Date().toISOString()}; });
+    if (!rows.length) throw 0;
+    for (let i = 0; i < rows.length; i += 200) { const {error} = await sb.from("items").upsert(rows.slice(i, i+200)); if (error) throw error; }
+    rows.forEach(r => S.items.set(r.id, {...r.data, id:r.id, kind:r.kind}));
+    render(); scheduleSummary(); toast(t("restored", rows.length));
+  } catch(e){ toast(t("errRestore")); }
+}
+
+/* ---------------- events ---------------- */
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "authForm") return;
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target));
+  S.authErr = ""; S.authMsg = "";
+  if (S.authMode === "signup") {
+    const {data, error} = await sb.auth.signUp({email:d.email.trim(), password:d.password, options:{data:{display_name:(d.name||"").trim()}}});
+    if (error) { S.authErr = t("errSignup"); render(); return; }
+    if (!data.session) { S.authMsg = t("checkEmail"); S.authMode = "signin"; render(); }
+  } else {
+    const {error} = await sb.auth.signInWithPassword({email:d.email.trim(), password:d.password});
+    if (error) { S.authErr = t("errAuth"); render(); }
+  }
+});
+document.addEventListener("click", e => {
+  const el = e.target.closest("button,input[type=checkbox]"); if (!el) return;
+  const m = S.items.get(S.memberId), ds = el.dataset;
+  if (ds.tab) { S.view = ds.tab; render(); scrollTo(0,0); if (ds.tab==="flags"||ds.tab==="chapter") refreshShared(); return; }
+  if (ds.nav) { S.view = ds.nav; render(); return; }
+  if (ds.open) { S.memberId = ds.open; S.view = "member"; render(); scrollTo(0,0); return; }
+  if (ds.meet) { meetingForm(S.items.get(ds.meet)); return; }
+  if (ds.topic) { topicForm(S.items.get(ds.topic)); return; }
+  if (ds.greet) { const c = celebrations()[+ds.greet]; if (c) copyText(greeting(c), t("greetCopied")); return; }
+  if (ds.ftab) { S.flagTab = ds.ftab; render(); return; }
+  if (ds.ack) { respondForm(ds.ack, "ack"); return; }
+  if (ds.resolve) { respondForm(ds.resolve, "resolved"); return; }
+  if (ds.saveLeader) { saveLeader(ds.saveLeader); return; }
+  if (ds.delNote && m) { if (confirm(t("confirmDelNote"))) save({...m, notes:m.notes.filter(n=>n.id!==ds.delNote)}); return; }
+  if (ds.delForm && m) { save({...m, formation:m.formation.filter(n=>n.id!==ds.delForm)}); return; }
+  if (ds.pray && m) { save({...m, prayer:m.prayer.map(p=>p.id===ds.pray?{...p,answered:el.checked}:p)}); return; }
+  switch (ds.act) {
+    case "add-member": memberForm(); break;
+    case "edit-member": memberForm(m); break;
+    case "settings": settingsForm(); break;
+    case "add-note": noteForm(m); break;
+    case "add-prayer": prayerForm(m); break;
+    case "add-formation": formationForm(m); break;
+    case "flag": flagForm(m); break;
+    case "delete-member": if (confirm(t("confirmRemove", m.name))) { remove(m.id); S.view="flock"; toast(t("mRemoved")); } break;
+    case "add-meeting": meetingForm(); break;
+    case "add-topic": topicForm(); break;
+    case "csv": csv(); break;
+    case "json": backup(); break;
+    case "refresh": refreshShared(); break;
+    case "reload": location.reload(); break;
+    case "signout": sb.auth.signOut(); break;
+    case "authswitch": S.authMode = S.authMode==="signup"?"signin":"signup"; S.authErr=""; S.authMsg=""; render(); break;
+  }
+});
+document.addEventListener("input", e => { if (e.target.id === "q") { S.q = e.target.value; render(); } });
+document.addEventListener("change", e => {
+  if (e.target.matches("select[data-lang]")) { const l = e.target.value; setLang(l); if (S.phase === "app") save({...settings(), lang:l}); }
+  if (e.target.id === "restoreFile" && e.target.files[0]) restore(e.target.files[0]);
+});
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refreshShared(); });
+
+/* ---------------- start ---------------- */
+document.documentElement.lang = S.lang === "tl" ? "fil" : S.lang;
+render();
+if (sb) {
+  sb.auth.onAuthStateChange((event, session) => {
+    const prev = S.session?.user?.id;
+    S.session = session;
+    if (!session) { S.phase = "auth"; S.items.clear(); S.flags = []; S.summaries.clear(); S.profiles.clear(); S.me = null; S.view = "flock"; render(); return; }
+    if (session.user.id !== prev || S.phase === "auth" || S.phase === "loading") { S.phase = "loading"; render(); setTimeout(loadAll, 0); }
+  });
+}
+})();
+</script>
+</body>
+</html>
