@@ -364,7 +364,8 @@ Object.assign(L, {
   signedInAs:[n=>`Signed in as ${n}`, n=>`Naka-sign in bilang ${n}`, n=>`Naka-sign in isip ${n}`],
   unitAssigned:["Unit (assigned by your Chapter Servant)","Unit (itinalaga ng Chapter Servant)","Unit (gitudlo sa Chapter Servant)"],
   role_pending:["Waiting for approval","Naghihintay ng apruba","Naghulat sa aprobar"],
-  role_household:["Household Servant","Household Servant","Household Servant"], role_unit:["Unit Servant","Unit Servant","Unit Servant"], role_chapter:["Chapter Servant","Chapter Servant","Chapter Servant"],
+  role_household:["Household Servant","Household Servant","Household Servant"], role_unit:["Unit Servant","Unit Servant","Unit Servant"], role_chapter:["Chapter Servant","Chapter Servant","Chapter Servant"], role_admin:["App administrator","Administrator ng app","Administrator sa app"], tabLeaders:["Leaders","Mga leader","Mga leader"],
+  adminSub:["As app administrator you approve accounts and assign roles. You don’t see referrals, chapter counts or anyone’s notes.","Bilang administrator ng app, ikaw ang nag-aapruba ng account at nagtatalaga ng tungkulin. Hindi mo nakikita ang referral, bilang ng chapter o tala ng sinuman.","Isip administrator sa app, ikaw ang mag-aprobar sa account ug magtudlo sa papel. Dili nimo makita ang referral, numero sa chapter o nota ni bisan kinsa."],
   leaders:["Leaders","Mga leader","Mga leader"],
   leadersSub:["Approve new accounts and assign roles and units. Unit names must match exactly.","Aprubahan ang mga bagong account at italaga ang tungkulin at unit. Dapat eksaktong magkatugma ang pangalan ng unit.","Aprobahi ang mga bag-ong account ug itudlo ang papel ug unit. Kinahanglang managsama gyud ang ngalan sa unit."],
   nPending:[n=>`${n} waiting for approval`, n=>`${n} naghihintay ng apruba`, n=>`${n} naghulat sa aprobar`],
@@ -407,6 +408,7 @@ const settings = () => S.items.get("settings") || {id:"settings",kind:"settings"
 const coupleName = m => m.name + (m.spouse ? ` & ${m.spouse}` : "");
 const role = () => S.me?.role || "pending";
 const isOverseer = () => role() === "unit" || role() === "chapter";
+const canManage = () => role() === "chapter" || role() === "admin";
 const myId = () => S.session?.user?.id;
 
 function toast(msg){ const el=$("#toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(el._h); el._h=setTimeout(()=>el.classList.remove("show"),2600); }
@@ -530,6 +532,7 @@ const ICONS = {
   meetings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   topics:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5c2.5-1 5.5-1 8 .5v13c-2.5-1.5-5.5-1.5-8-.5zM20 5.5c-2.5-1-5.5-1-8 .5v13c2.5-1.5 5.5-1.5 8-.5z"/></svg>',
   flags:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+  leaders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5M17.5 4.5l1.5 1.5 3-3"/></svg>',
   chapter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V5M16 20v-7M21 20H3"/></svg>',
   more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/></svg>'
 };
@@ -540,6 +543,7 @@ function renderTabs(){
   const openForMe = isOverseer() ? S.flags.filter(f=>f.sender!==myId() && f.status==="open").length : 0;
   const tabs = [["flock",t("tabFlock")],["meetings",t("tabMeet")],["topics",t("tabTopics")],["flags",t("tabFlags")]];
   if (isOverseer()) tabs.push(["chapter", role()==="chapter"?t("tabChapter"):t("tabUnit")]);
+  if (role() === "admin") tabs.push(["leaders", t("tabLeaders")]);
   tabs.push(["more",t("tabExport")]);
   const el = $("#tabs"); el.style.gridTemplateColumns = `repeat(${tabs.length},1fr)`;
   el.innerHTML = tabs.map(([k,l]) => `<button data-tab="${k}" ${S.view===k||(k==="flock"&&S.view==="member")?'aria-current="page"':""}>${ICONS[k]}${esc(l)}${k==="flags"&&openForMe?`<span class="badge">${openForMe}</span>`:""}</button>`).join("");
@@ -555,7 +559,7 @@ function render(){
   else if (S.phase === "error") html = `<div class="auth"><p>${t("errLoad")}</p><button class="btn primary" data-act="reload">${t("reload")}</button></div>`;
   else if (S.phase === "auth") html = viewAuth();
   else if (S.phase === "pending") html = `<div class="auth"><h1>${t("pendingT")}</h1><p>${t("pendingB")}</p><p class="small muted">${esc(t("signedInAs", S.session?.user?.email||""))}</p><div class="row"><button class="btn primary" data-act="reload">${t("reload")}</button><button class="btn" data-act="signout">${t("signOut")}</button>${langSelect()}</div></div>`;
-  else { const v = S.view; html = v==="member" ? viewMember() : v==="meetings" ? viewMeetings() : v==="topics" ? viewTopics() : v==="flags" ? viewFlags() : v==="chapter" ? viewChapter() : v==="more" ? viewExport() : viewFlock(); }
+  else { const v = S.view; html = v==="member" ? viewMember() : v==="meetings" ? viewMeetings() : v==="topics" ? viewTopics() : v==="flags" ? viewFlags() : v==="chapter" ? viewChapter() : v==="leaders" ? headerBlock(t("leaders"), t("adminSub"), `<button class="btn ghost" data-act="refresh">${t("refresh")}</button>`) + viewLeaders() : v==="more" ? viewExport() : viewFlock(); }
   app.innerHTML = html + FOOTER;
   if (keepFocus === "q") { const q=$("#q"); if(q){ q.focus(); q.setSelectionRange(q.value.length,q.value.length);} }
 }
@@ -710,7 +714,7 @@ function viewLeaders(){
   return `<section class="panel" style="margin-top:24px"><div class="spread"><h3>${t("leaders")}</h3>${pending?`<span class="tag late">${t("nPending",pending)}</span>`:""}</div>
   <p class="small muted" style="margin:0 0 6px">${t("leadersSub")}</p>
   ${people.map(p=>`<div class="leader"><div><strong style="font-weight:600">${esc(p.display_name||"—")}</strong><div class="small muted">${esc(p.email||"")}</div></div>
-    <select data-role-for="${p.id}" aria-label="${esc(t("role"))}">${["pending","household","unit","chapter"].map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${t("role_"+r)}</option>`).join("")}</select>
+    <select data-role-for="${p.id}" aria-label="${esc(t("role"))}">${["pending","household","unit","chapter","admin"].map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${t("role_"+r)}</option>`).join("")}</select>
     <input type="text" data-unit-for="${p.id}" value="${esc(p.unit)}" placeholder="${esc(t("unitName"))}" aria-label="${esc(t("unitName"))}">
     <button class="btn" data-save-leader="${p.id}">${t("save")}</button></div>`).join("")}</section>`;
 }
@@ -888,7 +892,7 @@ document.addEventListener("submit", async e => {
 document.addEventListener("click", e => {
   const el = e.target.closest("button,input[type=checkbox]"); if (!el) return;
   const m = S.items.get(S.memberId), ds = el.dataset;
-  if (ds.tab) { S.view = ds.tab; render(); scrollTo(0,0); if (ds.tab==="flags"||ds.tab==="chapter") refreshShared(); return; }
+  if (ds.tab) { S.view = ds.tab; render(); scrollTo(0,0); if (ds.tab==="flags"||ds.tab==="chapter"||ds.tab==="leaders") refreshShared(); return; }
   if (ds.nav) { S.view = ds.nav; render(); return; }
   if (ds.open) { S.memberId = ds.open; S.view = "member"; render(); scrollTo(0,0); return; }
   if (ds.meet) { meetingForm(S.items.get(ds.meet)); return; }
